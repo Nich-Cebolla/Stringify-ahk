@@ -676,7 +676,7 @@ newline {
 }
 ```
 
-`tracker.newline` and `tracker.indent` are properties that return the newline and indent strings, respectively. The newline string is returned only if the object is not a single line object. The indent string is returned only if the object is not a single line object and the current indent level is greater than 0. The newline string is a static value, and the indent string is a dynamic value that is modified by `Stringify` as needed.
+The main consideration with this approach is that we need to be able to update the `this.uncountedChars` value when we shrink an object down to one line. This process is facilitated by `tracker.ToggleSingleLine`, which handles all remaining logic related to the single-line options.
 
 ```ahk
 ToggleSingleLine(on, whichObj, len) {
