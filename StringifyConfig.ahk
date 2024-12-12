@@ -29,7 +29,7 @@ class StringifyConfig {
         I. Description and Features
         II. Options
             A. Recursion and recursion prevention
-                1. recursionPrevention
+                1. recursePrevention
                 2. ignore
             B. Object iteration
                 3. useOwnProps
@@ -113,10 +113,10 @@ class StringifyConfig {
   
     ;@region Recursion
 /**
-    @property {Integer|String} [recursionPrevention]
+    @property {Integer|String} [recursePrevention]
     This property can be used to prevent recursion. When using `Stringify`, if an object is assigned
     as a value to one of it's child properties, then `Stringify` will encounter infinite recursion
-    without intervention. `recursionPrevention` directs `Stringify` to assign a tag to each object
+    without intervention. `recursePrevention` directs `Stringify` to assign a tag to each object
     that has been stringified. The tags are removed when the procedure exits. Options are:
     - 0 or false: No recursion prevention.
     - 1 or 'Recursion': `Stringify` will skip over properties when the value of the property is a
@@ -785,7 +785,7 @@ class StringifyConfig {
     below functions are called. The extra logic including within `tracker.In()` performs these tasks:
         - prevent infinite recursion
         - enable the use of the option `newLineDepthLimit`
-        - signal to `Stringify` when the last recursion is ending, so it can unset the static variables 
+        - signal to `Stringify` when the last recursion is ending, so it can unset the static variables
             `opt` and `tracker`
     @example
     In(obj, name) {
