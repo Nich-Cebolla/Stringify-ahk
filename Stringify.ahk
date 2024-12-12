@@ -95,7 +95,9 @@ class Stringify {
                 else if enum && opt.useEnum {
                     _OwnProps_(true, 'E'), flagEnum := 0, keys := []
                     try {
-                        for key in obj {
+                        for key, val in obj {
+                            if tracker.active ='$'
+                                sleep 1
                             if tracker.CheckIgnore(key)
                                 continue
                             if IsObject(key) {
@@ -121,7 +123,7 @@ class Stringify {
                         }
                         _Close_(&str, '}'), _SetSingleLine_(tracker.ToggleSingleLine(false, 'O', StrLen(str)))
                     } else if !flagEnum && !IsSet(err)
-                        str .= _GetTypeString_(obj)
+                        str .= _GetTypeString_(obj), _Close_(&str, '}')
                     if flagEnum
                         _OwnProps_(false, 'E')
                 }
@@ -246,7 +248,7 @@ class Stringify {
                 _SetVal_(val, &str)
         }
         _Stringify_(obj, &str, key) {
-            if Type(obj) == 'ComValue' || Type(obj) == 'Func' || Type(obj) == 'BoundFunc' {
+            if Type(obj) == 'ComValue' || Type(obj) == 'Func' || Type(obj) == 'BoundFunc' || Type(obj) == 'Closure' {
                 str .= _GetTypeString_(obj)
                 return
             }
