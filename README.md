@@ -65,6 +65,8 @@ A customizable Stringify function that converts AHK objects to valid JSON string
 
 `Stringify` is a function that converts an AHK object into a JSON string. I designed `Stringify` to output a 100% valid JSON string, while also enabling various customization options.
 
+For output examples, there's several listed below, and also for a full object example view the [Example-output.md](https://github.com/Nich-Cebolla/Stringify-ahk/blob/main/Example-output.md).
+
 The characterstics which set this function apart from other Stringify functions are:
   - Iterate over all object properties, not just the base `__Enum` method.
   - Support for custom classes.
@@ -81,11 +83,11 @@ In selection order (top options are prioritized over bottom):
 - Defining the options in the `StringifyConfig.ahk` file.
 - Defining the options in `Stringify`'s static `params` property.
 
-The purpose of the `StringifyConfig.ahk` is to allow the user to define external default options, so if the main script is updated, the user is saved the hassle of needing to copy over their preferred configuration. To use this external configuration, all one needs to do is either keep it in the same directory as the parent script, or #include it as one would any other script. `Stringify` will detect if this configuration is in use and adapt accordingly. The `params` parameter of the function accepts an object, and so any defaults can be supersededas needed on-the-fly.
+The purpose of the `StringifyConfiuration.ahk` is to allow the user to define external default options, so if the main script is updated, the user is saved the hassle of needing to copy over their preferred configuration. To use this external configuration, all one needs to do is either keep it in the same directory as the parent script, or #include it as one would any other script. `Stringify` will detect if this configuration is in use and adapt accordingly. The `params` parameter of the function accepts an object, and so any defaults can be supersededas needed on-the-fly.
 
 The limitations of this function are:
 - I have not written its counterpart, `Parse`, yet. But since it produces valid JSON, other parsers will work, with some considerations, listed a bit below.
-- Invoking a custom class' `__Enum` method expects that the method accepts two ByRef varables as parameters, in the standard `for k, v in obj` format. If the method is incompatible with this, the enumeration does not occur. Any properties that were captured prior are still maintained in the string, but the enumerable container is not included; its placeholder is printed instead. If `hideErrors` is, false, a placeholder is printed and the error text listed next to the placeholder. If `hideErrors` is true, only the placeholder is printed in the string.
+- Invoking a custom class' `__Enum` method expects that the method accepts two ByRef varables as parameters, in the standard `for k, v in obj` format. If the method is incompatible withthis, the enumeration does not occur. Any properties that were captured prior are still maintained in the string, but the enumerable container is not included; its placeholderis printed instead. If `hideErrors` is, false, a placeholder is printed and the error text listed next to the placeholder. If `hideErrors` is true, only the placeholder is printed in the string.
 
 Parsing considerations:
 - `Stringify` uses placeholder names for item containers when needed. For example, if a map object has also been assigned properties, `Stringify` does not assign the map's items to the the object itself. The items are assigned to a container property, by default named `__MapItem`. The names are customizable. But if this is parsed by another script, the map items will be on that property and the base object would be an object, not a map. See the section `useOwnProps` for more details.
