@@ -81,7 +81,7 @@ In selection order (top options are prioritized over bottom):
 - Defining the options in the `StringifyConfig.ahk` file.
 - Defining the options in `Stringify`'s static `params` property.
 
-The purpose of the `StringifyConfiuration.ahk` is to allow the user to define external default options, so if the main script is updated, the user is saved the hassle of needing to copy over their preferred configuration. To use this external configuration, all one needs to do is either keep it in the same directory as the parent script, or #include it as one would any other script. `Stringify` will detect if this configuration is in use and adapt accordingly. The `params` parameter of the function accepts an object, and so any defaults can be supersededas needed on-the-fly.
+The purpose of the `StringifyConfig.ahk` is to allow the user to define external default options, so if the main script is updated, the user is saved the hassle of needing to copy over their preferred configuration. To use this external configuration, all one needs to do is either keep it in the same directory as the parent script, or #include it as one would any other script. `Stringify` will detect if this configuration is in use and adapt accordingly. The `params` parameter of the function accepts an object, and so any defaults can be supersededas needed on-the-fly.
 
 The limitations of this function are:
 - I have not written its counterpart, `Parse`, yet. But since it produces valid JSON, other parsers will work, with some considerations, listed a bit below.
