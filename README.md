@@ -2,7 +2,7 @@
 A customizable Stringify function that converts AHK objects to valid JSON strings.
 
 
-
+```ahk
 class StringifyConfig {
     static enumAsMap := false
     static escapeNL := ''
@@ -26,7 +26,7 @@ class StringifyConfig {
     static useEnum := true
     static useOwnProps := true
 }
-
+```
 /** # Stringify
    ### Contents
         I. Description and Features
