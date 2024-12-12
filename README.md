@@ -116,17 +116,17 @@ class StringifyConfig {
   
     ;@region Recursion
 /**
-    @property {Integer|String} [recursionPrevention]
-    This property can be used to prevent recursion. When using `Stringify`, if an object is assigned
-    as a value to one of it's child properties, then `Stringify` will encounter infinite recursion
-    without intervention. `recursionPrevention` directs `Stringify` to assign a tag to each object
-    that has been stringified. The tags are removed when the procedure exits. Options are:
-    - 0 or false: No recursion prevention.
-    - 1 or 'Recursion': `Stringify` will skip over properties when the value of the property is a
-    parent object. Objects in general may be stringified more than once, but only if the subject
-    does not contain a property that has a value that is a parent object.
-    In the below example, `Stringify` will allow `obj.John` to be stringified twice, because they
-    are on separate paths.
+@property {Integer|String} [recursionPrevention]
+This property can be used to prevent recursion. When using `Stringify`, if an object is assigned
+as a value to one of it's child properties, then `Stringify` will encounter infinite recursion
+without intervention. `recursionPrevention` directs `Stringify` to assign a tag to each object
+that has been stringified. The tags are removed when the procedure exits. Options are:
+- 0 or false: No recursion prevention.
+- 1 or 'Recursion': `Stringify` will skip over properties when the value of the property is a
+parent object. Objects in general may be stringified more than once, but only if the subject
+does not contain a property that has a value that is a parent object.
+In the below example, `Stringify` will allow `obj.John` to be stringified twice, because they
+are on separate paths.
         @example
         obj := {
             John: {
