@@ -1,7 +1,5 @@
 
-
 #Include *i StringifyConfig.ahk
-#Include tester.ahk
 
 class Stringify {
     static params := {
