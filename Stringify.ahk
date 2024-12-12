@@ -1,33 +1,59 @@
 
+
 #Include *i StringifyConfig.ahk
 
 class Stringify {
     static params := {
-        useOwnProps: true
-       , hideErrors: false
-       , singleLineArray: false
-       , singleLineMap: false
-       , singleLineObj: false
-       , quoteNumbersAsKey: true
-       , enumAsMap: false
-       , useEnum: true
-       , recursePrevention: 1
-       , nlCharLimitMap: 0
-       , nlCharLimitArray: 0
-       , nlCharLimitObj: 0
-       , newlineDepthLimit: 0
-       , itemContainerArray: '__ArrayItem'
-       , itemContainerMap: '__MapItem'
-       , itemContainerEnum: '__EnumItem'
-       , indent: '    '
-       , newline: '`n'
-       , escapeNL: ''
-       , maxDepth: 0
-       , ignore: []
+       enumAsMap: false
+      , escapeNL: ''
+      , hideErrors: false
+      , ignore: []
+      , indent: '`s`s`s`s'
+      , itemContainerArray: '__ArrayItem'
+      , itemContainerEnum: '__EnumItem'
+      , itemContainerMap: '__MapItem'
+      , maxDepth: 0
+      , newline: '`n'
+      , newlineDepthLimit: 0
+      , nlCharLimitArray: 0
+      , nlCharLimitMap: 0
+      , nlCharLimitObj: 0
+      , quoteNumbersAsKey: true
+      , recursePrevention: 1
+      , singleLineArray: false
+      , singleLineMap: false
+      , singleLineObj: false
+      , useEnum: true
+      , useOwnProps: true
     }
     
 
     ;@region Call
+    /** ### Stringify()
+     * Available options to pass in the `params` object:
+     * @param {Boolean} [enumAsMap]
+     * @param {String} [escapeNL]
+     * @param {Boolean} [hideErrors]
+     * @param {Array} [ignore]
+     * @param {String} [indent]
+     * @param {String} [itemContainerArray]
+     * @param {String} [itemContainerEnum]
+     * @param {String} [itemContainerMap]
+     * @param {Number} [maxDepth]
+     * @param {String} [newline]
+     * @param {Number} [newlineDepthLimit]
+     * @param {Number} [nlCharLimitArray]
+     * @param {Number} [nlCharLimitMap]
+     * @param {Number} [nlCharLimitObj]
+     * @param {Boolean} [quoteNumbersAsKey]
+     * @param {Number} [recursePrevention]
+     * @param {Boolean} [singleLineArray]
+     * @param {Boolean} [singleLineMap]
+     * @param {Boolean} [singleLineObj]
+     * @param {Boolean} [useEnum]
+     * @param {Boolean} [useOwnProps]
+     * @returns {String}
+     */
     static Call(obj, &str,  params?) {
         static tracker, opt
         local props, prop, key, val, typeStr, ownPropsStr, discardGroup, keys
@@ -108,6 +134,16 @@ class Stringify {
 
         ;@region OwnProps
 
+        _PrepareOwnProps_(&str, &flagOwnProps, itemName?, noOpen := false) {
+            if _EnumOwnProps_(&ownPropsStr, &len, noOpen) {
+                flagOwnProps := true
+                if IsSet(itemName)
+                    str .= ownPropsStr ',' tracker.newline tracker.indent '"' _GetItemPropName_(itemName) '": '
+                else
+                    str .= ownPropsStr
+            } else
+                flagOwnProps := false
+        }
         _OwnProps_(start, whichObj) {
             if whichObj != 'O' && !opt.useOwnProps
                 return
@@ -129,16 +165,6 @@ class Stringify {
                         return opt.itemContainerArray
                 }
             }
-        }
-        _PrepareOwnProps_(&str, &flagOwnProps, itemName?, noOpen := false) {
-            if _EnumOwnProps_(&ownPropsStr, &len, noOpen) {
-                flagOwnProps := true
-                if IsSet(itemName)
-                    str .= ownPropsStr ',' tracker.newline tracker.indent '"' _GetItemPropName_(itemName) '": '
-                else
-                    str .= ownPropsStr
-            } else
-                flagOwnProps := false
         }
         _EnumOwnProps_(&ownPropsStr, &len, noOpen) {
             local flag := 0, props := [], discardGroup, flagDiscarded
@@ -236,6 +262,12 @@ class Stringify {
             else
                 flag := 1
         }
+        ;@endregion
+
+
+
+        ;@region Setters
+
         _GetTypeString_(obj, err?, noQuotes := false) {
             local typeStr, errStr
             if IsSet(err) && !opt.hideErrors
@@ -268,12 +300,6 @@ class Stringify {
                 }
             }
         }
-        ;@endregion
-
-
-
-        ;@region Setters
-
         _Open_(&str, bracket) {
             tracker.currentIndent++, str .= bracket tracker.newline tracker.indent
         }
