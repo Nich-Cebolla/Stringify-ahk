@@ -1,67 +1,67 @@
 
-<h1>Stringify</h1>
+# Stringify
 
 A customizable Stringify function that converts AHK objects to valid JSON strings.
 
 <h2>Table of Contents</h2>
 
 <ol type="I">
-  <a href="#features"><li>Description and Features</li></a>
-  <a href="options"><li>Options</li></a>
+  <a href="#description-and-features"><li>Description and Features</li></a>
+  <a href="#options"><li>Options</li></a>
     <ol type="A">
-      <a href="#recursion"><li>Recursion and recursion prevention</li></a>
+      <a href="#recursion-and-recursion-prevention"><li>Recursion and recursion prevention</li></a>
         <ol type="1">
-          <a href="#recursePrevention"><li>recursePrevention</li></a>
-          <a href="ignore"><li>ignore</li></a>
+          <a href="#recurseprevention"><li>recursePrevention</li></a>
+          <a href="#ignore"><li>ignore</li></a>
         </ol>
       </li>
       <a href="#object-iteration"><li>Object iteration</li></a>
         <ol type="1">
-          <a href="#useOwnProps"><li>useOwnProps</li></a>
-          <a href="#useEnum"><li>useEnum</li></a>
-          <a href="#enumAsMap"><li>enumAsMap</li></a>
+          <a href="#useownprops"><li>useOwnProps</li></a>
+          <a href="#useenum"><li>useEnum</li></a>
+          <a href="#enumasmap"><li>enumAsMap</li></a>
         </ol>
       </li>
       <a href="#spacing"><li>Spacing</li></a>
         <ol type="1">
-          <a href="#singleLineArray"><li>singleLineArray</li></a>
-          <a href="#singleLineMap"><li>singleLineMap</li></a>
-          <a href="#singleLineObj"><li>singleLineObj</li></a>
-          <a href="#nlCharLimitArray"><li>nlCharLimitArray</li></a>
-          <a href="#nlCharLimitMap"><li>nlCharLimitMap</li></a>
-          <a href="#nlCharLimitObj"><li>nlCharLimitObj</li></a>
-          <a href="#newlineDepthLimit"><li>newlineDepthLimit</li></a>
+          <a href="#singlelinearray"><li>singleLineArray</li></a>
+          <a href="#singlelinemap"><li>singleLineMap</li></a>
+          <a href="#singlelineobj"><li>singleLineObj</li></a>
+          <a href="#nlcharlimitarray"><li>nlCharLimitArray</li></a>
+          <a href="#nlcharlimitmap"><li>nlCharLimitMap</li></a>
+          <a href="#nlcharlimitobj"><li>nlCharLimitObj</li></a>
+          <a href="#newlinedepthlimit"><li>newlineDepthLimit</li></a>
           <a href="#newline"><li>newline</li></a>
           <a href="#indent"><li>indent</li></a>
-          <a href="#maxDepth"><li>maxDepth</li></a>
+          <a href="#maxdepth"><li>maxDepth</li></a>
         </ol>
       </li>
       <a href="#format"><li>Format</li></a>
         <ol type="1">
-          <a href="#hideErrors"><li>hideErrors</li></a>
-          <a href="#quoteNumbersAsKey"><li>quoteNumbersAsKey</li></a>
-          <a href="#escapeNL"><li>escapeNL</li></a>
-          <a href="#itemContainerArray"><li>itemContainerArray</li></a>
-          <a href="#itemContainerEnum"><li>itemContainerEnum</li></a>
-          <a href="#itemContainerMap"><li>itemContainerMap</li></a>
+          <a href="#hideerrors"><li>hideErrors</li></a>
+          <a href="#quotenumbersaskey"><li>quoteNumbersAsKey</li></a>
+          <a href="#escapenl"><li>escapeNL</li></a>
+          <a href="#itemcontainerarray"><li>itemContainerArray</li></a>
+          <a href="#itemcontainerenum"><li>itemContainerEnum</li></a>
+          <a href="#itemcontainermap"><li>itemContainerMap</li></a>
         </ol>
       </li>
     </ol>
     <a href="#details"><li>Details</li></a>
       <ol type="A">
         <a href="#tracker"><li>Stringify.Tracker</li></a>
-        <a href="#Stringify"><li>Stringify</li></a>
-        <a href="#StringifyCall"><li>Stringify.Call()</li></a>
-        <a href="#own-props"><li>_PrepareOwnProps_(), _OwnProps_(), _EnumOwnProps_()</li></a>
-        <a href="#map-process"><li>_MapProcess_()</li></a>
-        <a href="#process"><li>_Process_(), _Stringify_(), _HandleNewItem_()</li></a>
-        <a href="#setters"><li>_GetTypeString_(), _Open_(), _Close_(), _GetItemPropName_(), _SetVal_(), _FormatError_(), _SetSingleLine_()</li></a>
+        <a href="#stringify"><li>Stringify</li></a>
+        <a href="#_mapprocess_"><li>_MapProcess_</li></a>
+        <a href="#call"><li>Stringify.Call</li></a>
+        <a href="#ownprops-functions"><li>OwnProps Functions</li></a>
+        <a href="#process-functions"><li>Process Functions</li></a>
+        <a href="#setters"><li>Setters</li></a>
       </ol>
     </li>
 </ol>
 
 
-<h2 id="features">Description and Features</h2>
+# Description and Features
 
 `Stringify` is a function that converts an AHK object into a JSON string. I designed `Stringify` to output a 100% valid JSON string, while also enabling various customization options.
 
@@ -92,37 +92,38 @@ Parsing considerations:
 - Maps become arrays of size-two arrays, and so need to be converted back to maps if the parser is not designed to handle this.
 - `Stringify` includes placeholders for certain values. For example, objects that are not iterable such as functions are included in the string as `"{Func}"`.
 
-<h2 id="parameters">Parameters</h2>
+# Options
 
-Alphabetic list:
-<li><a href="#enumAsMap">enumAsMap</a><br></li>
-<li><a href="#escapeNL">escapeNL</a><br></li>
-<li><a href="#hideErrors">hideErrors</a><br></li>
+## Alphabetic list
+
+<li><a href="#enumasmap">enumAsMap</a><br></li>
+<li><a href="#escapenl">escapeNL</a><br></li>
+<li><a href="#hideerrors">hideErrors</a><br></li>
 <li><a href="#ignore">ignore</a><br></li>
 <li><a href="#indent">indent</a><br></li>
-<li><a href="#itemContainerArray">itemContainerArray</a><br></li>
-<li><a href="#itemContainerEnum">itemContainerEnum</a><br></li>
-<li><a href="#itemContainerMap">itemContainerMap</a><br></li>
-<li><a href="#maxDepth">maxDepth</a><br></li>
+<li><a href="#itemcontainerarray">itemContainerArray</a><br></li>
+<li><a href="#itemcontainerenum">itemContainerEnum</a><br></li>
+<li><a href="#itemcontainermap">itemContainerMap</a><br></li>
+<li><a href="#maxdepth">maxDepth</a><br></li>
 <li><a href="#newline">newline</a><br></li>
-<li><a href="#newlineDepthLimit">newlineDepthLimit</a><br></li>
-<li><a href="#nlCharLimitArray">nlCharLimitArray</a><br></li>
-<li><a href="#nlCharLimitMap">nlCharLimitMap</a><br></li>
-<li><a href="#nlCharLimitObj">nlCharLimitObj</a><br></li>
-<li><a href="#quoteNumbersAsKey">quoteNumbersAsKey</a><br></li>
-<li><a href="#recursePrevention">recursePrevention</a><br></li>
-<li><a href="#singleLineArray">singleLineArray</a><br></li>
-<li><a href="#singleLineMap">singleLineMap</a><br></li>
-<li><a href="#singleLineObj">singleLineObj</a><br></li>
-<li><a href="#useEnum">useEnum</a><br></li>
-<li><a href="#useOwnProps">useOwnProps</a><br></li>
+<li><a href="#newlinedepthlimit">newlineDepthLimit</a><br></li>
+<li><a href="#nlcharlimitarray">nlCharLimitArray</a><br></li>
+<li><a href="#nlcharlimitmap">nlCharLimitMap</a><br></li>
+<li><a href="#nlcharlimitobj">nlCharLimitObj</a><br></li>
+<li><a href="#quotenumbersaskey">quoteNumbersAsKey</a><br></li>
+<li><a href="#recurseprevention">recursePrevention</a><br></li>
+<li><a href="#singlelinearray">singleLineArray</a><br></li>
+<li><a href="#singlelinemap">singleLineMap</a><br></li>
+<li><a href="#singlelineobj">singleLineObj</a><br></li>
+<li><a href="#useenum">useEnum</a><br></li>
+<li><a href="#useownprops">useOwnProps</a><br></li>
 
 
-<h1 id="options">Options</h1>
+## Recursion and Recursion Prevention
 
-<h2 id="recursion">Recursion and Recursion Prevention</h2>
+### recursePrevention
 
-<h3 id="recursePrevention">{Integer|String} [recursePrevention]</h3>
+{Integer|String}
 
 This property can be used to prevent recursion. When using `Stringify`, if an object is assigned
 as a value to one of it's child properties, then `Stringify` will encounter infinite recursion
@@ -199,7 +200,9 @@ MsgBox(str)
 ;    }
 ```
 
-<h3 id="ignore">{String|Array} [ignore]</h3>
+### ignore
+
+{String|Array}
 
 An array of strings or a single string that will be used to ignore properties when stringifying an object. There are two approaches to using this option.
 
@@ -255,9 +258,11 @@ MsgBox(str)
 ;    }
 ```
 
-<h2 id="object-iteration">Object Iteration</h2>
+## Object Iteration
 
-<h3 id="useOwnProps">{Boolean} [useOwnProps]</h3>
+### useOwnProps
+
+{Boolean}
 
 When true, objects will iterate their properties first. The key concept here is that arrays, maps, and other class instances will iterate all of their properties, as opposed to just the items iterated by its `__Enum` method.
    
@@ -313,20 +318,26 @@ try {
     str .= _GetTypeString_(obj, err), keys := -1
 ```
 
-<h3 id="useEnum">{Boolean} [useEnum]</h3>
+### useEnum
+
+{Boolean}
 
 When true, `Stringify` will iterate over the object's `__Enum` method. When false, the method is skipped. When employed, the method is activated using the standard two-parameter version of a `for` loop, expecting that the first parameter is the key, and the second parameter is the value. If the `__Enum` method is not compatible with this format, then the enumeration will fail and the items will be skipped.
 
-<h3 id="enumAsMap">{Boolean} [enumAsMap]</h3>
+### enumAsMap
+
+{Boolean}
 
 When true, `Stringify` will treat the items acquired from the `__Enum` method as a map regardless of content.
 
 
-<h2 id="spacing">Format and Spacing</h2>
+## Spacing
 
-<h3 id="singleLineArray">{Boolean} [singleLineArray]</h3>
-<h3 id="singleLineMap">{Boolean} [singleLineMap]</h3>
-<h3 id="singleLineObj">{Boolean} [singleLineObj]</h3>
+### singleLineArray
+### singleLineMap
+### singleLineObj
+
+{Boolean}
 
 For these three properties, if true, all objects of that type are represented as single-line items.
 
@@ -348,9 +359,11 @@ Stringify(obj, &str, params)
 MsgBox(str) ; [1,2,3,...200]
 ```
 
-<h3 id="nlCharLimitArray">{Integer} [nlCharLimitArray]</h3>
-<h3 id="nlCharLimitMap">{Integer} [nlCharLimitMap]</h3>
-<h3 id="nlCharLimitObj">{Integer} [nlCharLimitObj]</h3>
+### nlCharLimitArray
+### nlCharLimitMap
+### nlCharLimitObj
+
+{Integer}
 
 For these three properties, assigning a positive integer value directs `Stringify` to print the object as a single line only if the number of characters in the object are less than or equal to the value. If the object exceeds the character limit, the object is printed in its expanded form. Character count includes all characters except leading whitespace (i.e. the characterss between the beginning of the line and the first non-whitespace character. This process is facilitated by a tracking mechanism that logs the string length at each depth level, and keeps track of the number of newline characters and indent characters used up to that point. When the object's stringification is complete and that depth exits, the character count is calculated and compared with the limit. If the limit is exceeded, no changes are made. If the count is beneath the limit, the object is condensed to a single line.
 
@@ -396,7 +409,9 @@ Stringify(coolRocks, &str, params)
 MsgBox(str) ; [["amethyst",{"color": "purple","weight": 6}],["geode",{"color": "purple","weight": 5}],["obsidian",{"color": "black","weight": 9}],["quartz",{"color": "white","weight": 3}]]
 ```
 
-<h3 id="newlineDepthLimit">{Integer} [newlineDepthLimit]</h3>
+### newlineDepthLimit
+
+{Integer}
 
 When a positive integer, `Stringify` will only print new lines at depths equal to or less than the value. All other values will be printed in single-line form. The root object is depth 0. `0` is not a valid value for this parameter. If you don't want any newlines, set `newline` to `""`.
 
@@ -465,15 +480,21 @@ MsgBox(str)
 ; }
 ```
 
-<h3 id="newline">{String} [newline]</h3>
+### newline
+
+{String}
 
 The string of characters used to represent a new line. These are literal newlines within the JSON string, not escaped newlines.
 
-<h3 id="indent">{String} [indent]</h3>
+### indent
+
+{String}
 
 The string of characters used for indentation. One instance of this string is included for each indent level. For example: if this option is "`s`s`s`s" and the current indent level is 2, there will be 8 spaces before the line of text.
 
-<h3 id="maxDepth">{Integer} [maxDepth]</h3>
+### maxDepth
+
+{Integer}
 
 When a positive integer, `Stringify` will only print objects at depths equal to or less than the value. Any objects encountered that would require descending to a depth greater than this value are represented by their placeholder string. The root object is depth 0.
 
@@ -520,9 +541,11 @@ MsgBox(str)
 ; }
 ```
 
-<h2 id="format">Format</h2>
+## Format
 
-<h3 id="hideErrors">{Boolean} [hideErrors]</h3>
+### hideErrors
+
+{Boolean}
 
 To allow this script to be generalizable to custom classes, some error handling is incorporated into `Stringify`. When `hideErrors` is false, `Stringify` includes error text within the JSON string next to the placeholder for the object that raised the error.
 
@@ -593,26 +616,32 @@ In the above example, when `Stringify` attempts to enumerate the class, it will 
 
 Regarding standard arrays, unset indices are handle by `Stringify`. These are represented by `""` in the string. Regarding maps, no error handling is built-in. It is expected that a map's items are enumerable, and so if an error occurs we will want to see the error.
 
-<h3 id="quoteNumbersAsKey">{Boolean} [quoteNumbersAsKey]</h3>
+### quoteNumbersAsKey
+
+{Boolean}
 
 When true, numbers are quoted when used as map keys. Example: `Map(500, "value)` becomes `[["500", "value"]]`. When false, the number is not quoted: `[[500, "value"]]`.
 
-<h3 id="escapeNL">{String} [escapeNL]</h3>
+### escapeNL
+
+{String}
 
 The literal string of characters used to replace `r`n. When this option is set to empty or false, the characters are escaped by their usual counterpart. (i.e. "`r" is "\r" and "`n" is "\n"). When this option is set to a string, the literal string is used as a replacement for all matches with "\R"
 [https://www.autohotkey.com/docs/v2/misc/RegEx-QuickRef.htm#Common](https://www.autohotkey.com/docs/v2/misc/RegEx-QuickRef.htm#Common)
 
-<h3 id="itemContainerArray">{String} [itemContainerArray]</h3>
-<h3 id="itemContainerEnum">{String} [itemContainerEnum]</h3>
-<h3 id="itemContainerMap">{String} [itemContainerMap]</h3>
+### itemContainerArray
+### itemContainerEnum
+### itemContainerMap
+
+{String}
 
 These properties are used to assign a placeholder for items acquired from the `__Enum` method. The default values are `__ArrayItem`, `__MapItem`, and `__EnumItem`. This only has an effect when `useOwnProps` is `true` and the stringified objects have properties that are accessible by `Object.Prototype.OwnProps()` in its 1-parameter mode. When `Stringify` gets to the enumeration method, it assigns any items accessed from the enumeration method to this property. If the object already has the designted name, `Stringify` will append underscores to the name until a unique name is found.
 
-<h1 id="details">Details</h1>
+# Details
 
 This section is intended for those who may want to modify or adapt the script for other purposes. The core mechanisms employed by the function are described here.
 
-<h2 id="tracker">Stringify.Tracker</h2>
+## Tracker
 
 `Stringify.Tracker` contains methods that enable the tracking of numbers and conditions that are necessry for the function's logic to work as expected. The most challenging component of this for me was enabling the use of formatting the formatting options, such as the line spacing and limits. I reworked the concept three times until landing on its present form, which works well and is not complicated once you know how it works.
 
@@ -749,9 +778,9 @@ Out(str) {
 
 `tracker.In()` is called prior to an object being recursed into via `Stringify()`, and `tracker.Out()` is called as the process exits.
 
-<h2 id="Stringify">Stringify()</h2>
+## Stringify
 
-`Stringify()` is the primary function that stringifies an object. It is a recursive function that iterates over an object's properties and values, and then calls itself on each value that is an object.
+`Stringify` is the primary function that stringifies an object. It is a recursive function that iterates over an object's properties and values, and then calls itself on each value that is an object.
 
 The stringification process begins with a switch function. Each object type, "Map", "Array", and "Object" has its own sequence of actions. I refactored the sequences as best I could into the current series of mini-functions. Any further refactoring would be trading one convenience for another hassle, and so this is where I found it best to stop.
 
@@ -771,7 +800,7 @@ I used descriptive variable names, and so reading the function shouldn't be a pr
 
 Let's dissect `_MapProcess_()`, as an example of how the logic is implemented.
 
-<h2 id="MapProcess">_MapProcess_()</h2>
+## \_MapProcess\_
 
 ```ahk
 _MapProcess_() {
@@ -802,11 +831,13 @@ _MapProcess_() {
 
 As seen in the above code, the process functions set the series of actions and manage some conditional flags. Here's a list of functions and a short description of their purpose.
 
-<h2 id="StringifyCall">Stringify.Call()</h2>
+## Call
 
 Implements a switch function to direct the flow of actions.
 
-<h2 id="own-props">_PrepareOwnProps_(), _OwnProps_(), _EnumOwnProps_()</h2>
+## OwnProps functions
+
+\_PrepareOwnProps\_, \_OwnProps\_, \_EnumOwnProps\_
 
 The functions that handle iterating an object's own properties.
 
@@ -816,11 +847,9 @@ The outer function, `_PrepareOwnProps_()`, was necessary to simplify handling th
 
 `_EnumOwnProps_()` iterates the object's properties.
 
-<h2 id="map-process">_MapProcess_()</h2>
+## Process Functions
 
-This is described above <a href="#MapProcess">here</a>.
-
-<h2 id="process">_Process_(), _Stringify_(), _HandleNewItem_()</h2>
+\_Process\_, \_Stringify\_, \_HandleNewItem\_
 
 These functions contain actions shared by all of the sequences.
 
@@ -830,7 +859,9 @@ These functions contain actions shared by all of the sequences.
 
 `_HandleNewItem_()` is called when a new item is being added to the string. It handles adding a comma between items.
 
-<h2 id="setters">_GetTypeString_(), _Open_(), _Close_(), _GetItemPropName_(), _SetVal_(), _FormatError_(), _SetSingleLine_()</h2>
+## Setters
+
+\_GetTypeString\_, \_Open\_, \_Close\_, \_GetItemPropName\_, \_SetVal\_, \_FormatError\_, \_SetSingleLine\_
 
 Each of these functions, except `_SetSingleLine_()` handle the production of substrings.
 
