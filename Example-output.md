@@ -777,7 +777,7 @@ The `Monitor` class is from https://github.com/Nich-Cebolla/Monitor.ahk
         "__Class": "Monitor"
     },
     "Refresh": "{Func}",
-    "scriptPath": "C:\\Users\\westn\\repos\\Dev-Office-Toolkit-main\\Lib\\dev\\Stringify\\tester.ahk",
+    "scriptPath": "C:\\Users\\user\\Documents\\AutoHotkey\\Lib\\dev\\Stringify\\tester.ahk",
     "sorted": [
         {
             "__Enum": "{Func}",
@@ -1699,7 +1699,7 @@ The `Monitor` class is from https://github.com/Nich-Cebolla/Monitor.ahk
             "__Class": "Monitor"
         },
         "Refresh": "{Func}",
-        "scriptPath": "C:\\Users\\westn\\repos\\Dev-Office-Toolkit-main\\Lib\\dev\\Stringify\\tester.ahk",
+        "scriptPath": "C:\\Users\\user\\Documents\\AutoHotkey\\Lib\\dev\\Stringify\\tester.ahk",
         "sorted": [
             {
                 "__Enum": "{Func}",
