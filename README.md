@@ -100,28 +100,28 @@ Parsing considerations:
 
 ## Alphabetic list
 
-<li><a href="#enumasmap">enumAsMap</a><br></li>
-<li><a href="#escapenl">escapeNL</a><br></li>
-<li><a href="#hideerrors">hideErrors</a><br></li>
-<li><a href="#ignore">ignore</a><br></li>
-<li><a href="#indent">indent</a><br></li>
-<li><a href="#itemcontainerarray">itemContainerArray</a><br></li>
-<li><a href="#itemcontainerenum">itemContainerEnum</a><br></li>
-<li><a href="#itemcontainermap">itemContainerMap</a><br></li>
-<li><a href="#maxdepth">maxDepth</a><br></li>
-<li><a href="#newline">newline</a><br></li>
-<li><a href="#newlinedepthlimit">newlineDepthLimit</a><br></li>
-<li><a href="#nlcharlimitarray">nlCharLimitArray</a><br></li>
-<li><a href="#nlcharlimitmap">nlCharLimitMap</a><br></li>
-<li><a href="#nlcharlimitobj">nlCharLimitObj</a><br></li>
-<li><a href="#quotenumbersaskey">quoteNumbersAsKey</a><br></li>
-<li><a href="#recurseprevention">recursePrevention</a><br></li>
-<li><a href="#singlelinearray">singleLineArray</a><br></li>
-<li><a href="#singlelinemap">singleLineMap</a><br></li>
-<li><a href="#singlelineobj">singleLineObj</a><br></li>
-<li><a href="#useenum">useEnum</a><br></li>
-<li><a href="#useownprops">useOwnProps</a><br></li>
-
+<li><a href="#enumasmap">enumAsMap</a> - When true, all values obtained using `__Enum()` are assumed to belong to a map object.<br></li>
+<li><a href="#escapenl">escapeNL</a> - The literal string of characters to replace matches with '\R.<br></li>
+<li><a href="#hideerrors">hideErrors</a> - When true, error text is not printed within the JSON.<br></li>
+<li><a href="#ignore">ignore</a> - A string or array of strings containing property names / object paths that will not be stringified.<br></li>
+<li><a href="#indent">indent</a> - The literal string to use as indentation.<br></li>
+<li><a href="#itemcontainerarray">itemContainerArray</a> - The name given to the faux array container.<br></li>
+<li><a href="#itemcontainerenum">itemContainerEnum</a> - The name given to the faux enum container.<br></li>
+<li><a href="#itemcontainermap">itemContainerMap</a> - The name given to the faux map container.<br></li>
+<li><a href="#maxdepth">maxDepth</a> - The maximum depth that will be recursed into and stringified.<br></li>
+<li><a href="#newline">newline</a> - The literal string used for new lines.<br></li>
+<li><a href="#newlinedepthlimit">newlineDepthLimit</a> - The maximum depth at which newlines will be printed in the JSON string.<br></li>
+<li><a href="#nlcharlimitarray">nlCharLimitArray</a> - When an object's stringification is complete, if the length of the object's string representation is under this number, it is condensed to one line.<br></li>
+<li><a href="#nlcharlimitmap">nlCharLimitMap</a> - When an object's stringification is complete, if the length<br></li>
+<li><a href="#nlcharlimitobj">nlCharLimitObj</a> - When an object's stringification is complete, if the length<br></li>
+<li><a href="#printfuncplaceholders">printFuncPlaceholders</a> - When true, functions are represented in the JSON string<br></li>
+<li><a href="#quotenumbersaskey">quoteNumbersAsKey</a> - Quotes numbers when used as a map key.<br></li>
+<li><a href="#recurseprevention">recursePrevention</a> - The type of recurse prevention to use.<br></li>
+<li><a href="#singlelinearray">singleLineArray</a> - All arrays are condensed to a single line.<br></li>
+<li><a href="#singlelinemap">singleLineMap</a> - All maps are condensed to a single line.<br></li>
+<li><a href="#singlelineobj">singleLineObj</a> - All objects are condensed to a single line.<br></li>
+<li><a href="#useenum">useEnum</a> - Iterate all object's `__Enum()` method. When false, maps and arrays are still iterated using their basic `__Enum()` method.<br></li>
+<li><a href="#useownprops">useOwnProps</a> - Iterate all objects own properties. When false, objects are still iterated using their `OwnProps()` method.<br></li>
 
 ## Recursion and Recursion Prevention
 
