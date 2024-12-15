@@ -2040,7 +2040,7 @@ In selection order (top options are prioritized over bottom):
   - Defining the options in `Stringify`'s static `params` property.
 
 [color=#400040][size=125]For a full description of the available options, view the README.md document on the Github page, or view the `StringifyConfig.ahk` file below.[/size][/color]
-The purpose of the `StringifyConfig.ahk` is to allow the user to define external default options, so if the main script is updated, the user is saved the hassle of needing to copy over their preferred configuration. To use this external configuration, all one needs to do is either keep it in the same directory as the parent script, or #include it as one would any other script. `Stringify` will detect if this configuration is in use and adapt accordingly. The `params` parameter of the function accepts an object, and so any defaults can be supersededas needed on-the-fly.
+The purpose of the `StringifyConfig.ahk` is to allow the user to define external default options, so if the main script is updated, the user is saved the hassle of needing to copy over their preferred configuration. To use this external configuration, all one needs to do is either keep it in the same directory as the parent script, or #include it as one would any other script. `Stringify` will detect if this configuration is in use and adapt accordingly. The `params` parameter of the function accepts an object, and so any defaults can be superseded as needed on-the-fly.
 
 [color=#400040][size=125]The limitations of this function are:[/size][/color]
   - I have not written its counterpart, `Parse`, yet. But since it produces valid JSON, other parsers will work, with some considerations, listed a bit below.
@@ -2053,32 +2053,38 @@ The purpose of the `StringifyConfig.ahk` is to allow the user to define external
 
 [color=#000040][size=150]List of Options[/size][/color]
 [color=#400040][size=125]For a description of each option view the README.md document on the Github page, or view the `StringifyConfig.ahk` file below.[/size][/color]
-enumAsMap
-escapeNL
-hideErrors
-ignore
-indent
-itemContainerArray
-itemContainerEnum
-itemContainerMap
-maxDepth
-newline
-newlineDepthLimit
-nlCharLimitArray
-nlCharLimitMap
-nlCharLimitObj
-quoteNumbersAsKey
-recursePrevention
-singleLineArray
-singleLineMap
-singleLineObj
-useEnum
-useOwnProps
+- @param {Boolean} [enumAsMap] - When true, all values obtained using `__Enum()` are assumed to belong to a map object.
+- @param {String} [escapeNL] - The literal string of characters to replace matches with '\R'.
+- @param {Boolean} [hideErrors] - When true, error text is not printed within the JSON.
+- @param {Array|String} [ignore] - A string or array of strings containing property names / object paths that will not be stringified.
+- @param {String} [indent] - The literal string to use as indentation.
+- @param {String} [itemContainerArray] - The name given to the faux array container.
+- @param {String} [itemContainerEnum] - The name given to the faux enum container.
+- @param {String} [itemContainerMap] - The name given to the faux map container.
+- @param {Number} [maxDepth] - The maximum depth that will be recursed into and stringified.
+- @param {String} [newline] - The literal string used for new lines.
+- @param {Integer} [newlineDepthLimit] - The maximum depth at which newlines will be printed in the JSON string.
+- @param {Integer} [nlCharLimitArray] - When an object's stringification is complete, if the length of the object's string representation is under this number, it is condensed to one line.
+- @param {Integer} [nlCharLimitMap] - When an object's stringification is complete, if the length
+- of the object's string representation is under this number, it is condensed to one line.
+- @param {Integer} [nlCharLimitObj] - When an object's stringification is complete, if the length
+- of the object's string representation is under this number, it is condensed to one line.
+- @param {Boolean} [printFuncPlaceholders] - When true, functions are represented in the JSON string
+- as "{Func}", "{BoundFunc}", or "{Closure}".
+- @param {Boolean} [quoteNumbersAsKey] - Quotes numbers when used as a map key.
+- @param {Integer|String} [recursePrevention] - Valid values are:
+- 0 or false - no protection
+- 1 or 'Recursion' - properties that have values that are a parent object are not recurse into.
+- 2 or 'duplicate' - all objects are stringified a maximum of 1 time.
+- @param {Boolean} [singleLineArray] - All arrays are condensed to a single line.
+- @param {Boolean} [singleLineMap] - All maps are condensed to a single line.
+- @param {Boolean} [singleLineObj] - All objects are condensed to a single line.
+- @param {Boolean} [useEnum] - Iterate all object's `__Enum()` method. When false, maps and arrays are still iterated using their basic `__Enum()` method.
+- @param {Boolean} [useOwnProps] - Iterate all objects own properties. When false, objects are still iterated using their `OwnProps()` method.
 
 [color=#000040][size=150]Stringify.ahk[/size][/color]
 
 [code]
-
 
 #Include *i StringifyConfig.ahk
 
@@ -2098,6 +2104,7 @@ class Stringify {
       , nlCharLimitArray: 0
       , nlCharLimitMap: 0
       , nlCharLimitObj: 0
+      , printFuncPlaceholders: false
       , quoteNumbersAsKey: true
       , recursePrevention: 1
       , singleLineArray: false
@@ -2110,28 +2117,38 @@ class Stringify {
 
     ;@region Call
     /** ### Stringify()
-     * Available options to pass in the `params` object:
-     * @param {Boolean} [enumAsMap]
-     * @param {String} [escapeNL]
-     * @param {Boolean} [hideErrors]
-     * @param {Array} [ignore]
-     * @param {String} [indent]
-     * @param {String} [itemContainerArray]
-     * @param {String} [itemContainerEnum]
-     * @param {String} [itemContainerMap]
-     * @param {Number} [maxDepth]
-     * @param {String} [newline]
-     * @param {Number} [newlineDepthLimit]
-     * @param {Number} [nlCharLimitArray]
-     * @param {Number} [nlCharLimitMap]
-     * @param {Number} [nlCharLimitObj]
-     * @param {Boolean} [quoteNumbersAsKey]
-     * @param {Number} [recursePrevention]
-     * @param {Boolean} [singleLineArray]
-     * @param {Boolean} [singleLineMap]
-     * @param {Boolean} [singleLineObj]
-     * @param {Boolean} [useEnum]
-     * @param {Boolean} [useOwnProps]
+     * Available options to pass in the `params` object. See the StringifyConfig.ahk document or
+     * the README.md {@link https://github.com/Nich-Cebolla/Stringify-ahk} document for full details.
+     * @param {Boolean} [enumAsMap] - When true, all values obtained using `__Enum()` are assumed to belong to a map object.
+     * @param {String} [escapeNL] - The literal string of characters to replace matches with '\R.
+     * @param {Boolean} [hideErrors] - When true, error text is not printed within the JSON.
+     * @param {Array|String} [ignore] - A string or array of strings containing property names / object paths that will not be stringified.
+     * @param {String} [indent] - The literal string to use as indentation.
+     * @param {String} [itemContainerArray] - The name given to the faux array container.
+     * @param {String} [itemContainerEnum] - The name given to the faux enum container.
+     * @param {String} [itemContainerMap] - The name given to the faux map container.
+     * @param {Number} [maxDepth] - The maximum depth that will be recursed into an stringified.
+     * @param {String} [newline] - The literal string used for new lines.
+     * @param {Integer} [newlineDepthLimit] - The maximum depth at which newlines will be printed in the JSON string.
+     * @param {Integer} [nlCharLimitArray] - When an object's stringification is complete, if the length
+     * of the object's string representation is under this number, it is condensed to one line.
+     * @param {Integer} [nlCharLimitMap] - When an object's stringification is complete, if the length
+     * of the object's string representation is under this number, it is condensed to one line.
+     * @param {Integer} [nlCharLimitObj] - When an object's stringification is complete, if the length
+     * of the object's string representation is under this number, it is condensed to one line.
+     * @param {Boolean} [printFuncPlaceholders] - When true, functions are represented in the JSON string
+     * as "{Func}", "{BoundFunc}", or "{Closure}".
+     * @param {Boolean} [quoteNumbersAsKey] - Quotes numbers when used as a map key.
+     * @param {Integer|String} [recursePrevention] - Valid values are: 0 or false - no protection
+     * 1 or 'Recursion' - properties that have values that are a parent object are not recurse into.
+     * 2 or 'duplicate' - all objects are stringified a maximum of 1 time.
+     * @param {Boolean} [singleLineArray] - All arrays are condensed to a single line.
+     * @param {Boolean} [singleLineMap] - All maps are condensed to a single line.
+     * @param {Boolean} [singleLineObj] - All objects are condensed to a single line.
+     * @param {Boolean} [useEnum] - Iterate all object's `__Enum()` method. When false, maps and arrays
+     * are still iterated using their basic `__Enum()` method.
+     * @param {Boolean} [useOwnProps] - Iterate all objects own properties. When false, objects are
+     * still iterated using their `OwnProps()` method.
      * @returns {String}
      */
     static Call(obj, &str,  params?) {
@@ -2176,8 +2193,6 @@ class Stringify {
                     _OwnProps_(true, 'E'), flagEnum := 0, keys := []
                     try {
                         for key, val in obj {
-                            if tracker.active ='$'
-                                sleep 1
                             if tracker.CheckIgnore(key)
                                 continue
                             if IsObject(key) {
@@ -2198,7 +2213,9 @@ class Stringify {
                         tracker.ToggleSingleLine(true, 'O', StrLen(str)), _Open_(&str, '{'), flag := 0
                         for key, val in obj {
                             if tracker.CheckIgnore(key)
-                                return
+                                continue
+                            if IsObject(val) && RegExMatch(Type(val), 'Func|BoundFunc|Closure') && !opt.printFuncPlaceholders
+                                continue
                             _HandleNewItem_(&str, &flag), str .= '"' key '": ', _Process_(obj, &str, val, key)
                         }
                         _Close_(&str, '}'), _SetSingleLine_(tracker.ToggleSingleLine(false, 'O', StrLen(str)))
@@ -2265,6 +2282,8 @@ class Stringify {
                 if !noOpen
                     _Open_(&ownPropsStr, '{')
                 for prop in props {
+                    if IsObject(obj.%prop%) && RegExMatch(Type(obj.%prop%), 'Func|BoundFunc|Closure') && !opt.printFuncPlaceholders
+                        continue
                     _HandleNewItem_(&ownPropsStr, &flag), ownPropsStr .= '"' prop '": ', flagDiscarded := false
                     if IsSet(discardGroup) {
                         for item in tracker.discarded[discardGroup] {
@@ -2301,6 +2320,8 @@ class Stringify {
             else {
                 tracker.ToggleSingleLine(true, 'M', StrLen(str)), _Open_(&str, '['), flag := 0
                 for key, val in obj {
+                    if IsObject(val) && RegExMatch(Type(val), 'Func|BoundFunc|Closure') && !opt.printFuncPlaceholders
+                        continue
                     if IsObject(key)
                         key := '"{' _GetTypeString_(key) '}"'
                     if tracker.CheckIgnore(key)
@@ -2462,8 +2483,8 @@ class Stringify {
                     Stringify.Tracker.__ThrowTagError()
                 this.recursePrevention := match.mark, obj.__StringifyTag := '$'
             }
-            this.parent := obj, this.indentStr.Push(opt.indent), this.lenPrimary.defaut := this.lenEnumObj.default := 0
-            this.DefineProp('__Get', {Call: (self, key, *) => self.opt.HasOwnProp(key) ? self.opt.%key% : unset})
+            this.parent := obj, this.indentStr.Push(opt.indent), this.lenPrimary.default := this.lenEnumObj.default := 0
+            this.DefineProp('__Get', {Call: (self, key, *) => self.opt.HasOwnProp(key) ? self.opt.%key% : ''})
             this.DefineProp('__Set', {Call: ___Set_}), this.ToggleSingleLine(true, 'M', 0)
             ___Set_(self, key, value, *) {
                 if this.opt.HasOwnProp(key)
@@ -2646,15 +2667,12 @@ class Stringify {
 }
     ;@endregion
 
-
 [/code]
 
 
 [color=#000040][size=150]StringifyConfig.ahk[/size][/color]
 
-
 [code]
-
 
 class StringifyConfig {
     static enumAsMap := false
@@ -2671,6 +2689,7 @@ class StringifyConfig {
     static nlCharLimitArray := 100
     static nlCharLimitMap := 100
     static nlCharLimitObj := 100
+    static printFuncPlaceholders := false
     static quoteNumbersAsKey := true
     static recursePrevention := 1
     static singleLineArray := false
@@ -2709,6 +2728,7 @@ class StringifyConfig {
                 19. itemContainerArray
                 20. itemContainerEnum
                 21. itemContainerMap
+        III. Details
 */
 
     ;@region Description
@@ -2717,7 +2737,7 @@ class StringifyConfig {
     Stringify is a function that converts an AHK object into a JSON string. I designed `Stringify`
     to output a 100% valid JSON string, while also enabling various customization options.
 
-    The characterstics which set this function apart from other Stringify functions are:
+    The characteristics which set this function apart from other Stringify functions are:
         - Iterate over all object properties, not just the base `__Enum` method.
         - Support for custom classes.
         - JSON string format and spacing customization.
@@ -2744,7 +2764,7 @@ class StringifyConfig {
     The limitations of this function are:
         - I have not written its counterpart, `Parse`, yet. But since it produces valid JSON, other
         parsers will work, with some considerations, listed a bit below.
-        - Invoking a custom class' `__Enum` method expects that the method accepts two ByRef varables
+        - Invoking a custom class' `__Enum` method expects that the method accepts two ByRef variables
         as parameters, in the standard `for k, v in obj` format. If the method is incompatible with
         this, the enumeration does not occur. Any properties that were captured prior are still
         maintained in the string, but the enumerable container is not included; its placeholder
@@ -2842,10 +2862,10 @@ class StringifyConfig {
         @
 
     - 2 or 'duplicate': All objects can be stringified a maximum of one time. If an object has been
-    tagged, it will be skipped all subequent encounters.
+    tagged, it will be skipped all subsequent encounters.
 
     When an object is skipped due to this option, a placeholder is applied to the JSON in the
-    format `"{objectPath.objectName}"`. Looking at the bove example, `$.` is the symbol for the
+    format `"{objectPath.objectName}"`. Looking at the above example, `$.` is the symbol for the
     root object, `John` is a first child of the root object. Since `$.John` was iterated first,
     that becomes the symbol used for subsequent encounters that are excluded due to this recursion
     setting.
@@ -2962,7 +2982,7 @@ class StringifyConfig {
     an object's property names, the purpose in implementing this option was to avoid errors when
     Stringifying custom classes that employ an `__Enum` method, since it would be unknown whether
     the class is enumerating it's properties or a set of items or some other thing, and also it
-    would be unknown where those values are contained. By defualt, when iterating over an object's
+    would be unknown where those values are contained. By default, when iterating over an object's
     `__Enum` method, `Stringify` assumes they are object properties unless either of these are true:
     option `enumAsMap` is true, or `Stringify` sets the `flagAsMap` flag as a result of the below test.
     @example
@@ -3028,7 +3048,7 @@ class StringifyConfig {
     For these three properties, assigning a positive integer value directs `Stringify` to print the
     object as a single line only if the number of characters in the object are less than or equal to
     the value. If the object exceeds the character limit, the object is printed in its expanded form.
-    Character count includes all characters except leading whitespace (i.e. the characterss between
+    Character count includes all characters except leading whitespace (i.e. the characters between
     the beginning of the line and the first non-whitespace character. This process is facilitated
     by a tracking mechanism that logs the string length at each depth level, and keeps track of
     the number of newline characters and indent characters used up to that point. When the object's
@@ -3153,7 +3173,7 @@ class StringifyConfig {
     are literal newlines within the JSON string, not escaped newlines.
     
     @property {String} [indent] - The string of characters used for indentation. One instance of this
-    string is included for each indent level. For exampe: if this option is "`s`s`s`s" and the current
+    string is included for each indent level. For example: if this option is "`s`s`s`s" and the current
     indent level is 2, there will be 8 spaces before the line of text.
 
     @property {Integer} [maxDepth] - When a positive integer, `Stringify` will only print objects
@@ -3279,7 +3299,7 @@ class StringifyConfig {
     @
 
     In the above example, when `Stringify` attempts to enumerate the class, it will try the
-    `__Enum` method. When the error occurs, it will include the error information in the JSON stirng.
+    `__Enum` method. When the error occurs, it will include the error information in the JSON string.
     Generally, when an error occurs, the object is not stringified and instead the placeholder is
     included. The exception is when iterating an object's `OwnProps()` method, in which case the
     error does not halt the process; only that specific property is skipped.
@@ -3308,8 +3328,16 @@ class StringifyConfig {
     `useOwnProps` is `true` and the stringified objects have properties that are accessible by
     `Object.Prototype.OwnProps()` in its 1-parameter mode. When `Stringify` gets to the enumeration
     method, it assigns any items accessed from the enumeration method to this property. If the object
-    already has the designted name, `Stringify` will append underscores to the name until a unique
+    already has the designated name, `Stringify` will append underscores to the name until a unique
     name is found.
  */
     ;@endregion
+
 [/code]
+
+
+[color=#000040][size=150]Changelog[/size][/color]
+[color=#000040][size=120]12/15/2024[/size][/color]
+- Changed a line that used syntax only available in alpha. Specifically: [c]this.DefineProp('__Get', {Call: (self, key, *) => self.opt.HasOwnProp(key) ? self.opt.%key% : unset})[/c]
+- Installed a spellchecker and corrected spelling.
+- Implemented `printFuncPlaceholders` option.
