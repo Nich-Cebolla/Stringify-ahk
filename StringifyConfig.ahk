@@ -15,6 +15,7 @@ class StringifyConfig {
     static nlCharLimitArray := 100
     static nlCharLimitMap := 100
     static nlCharLimitObj := 100
+    static printFuncPlaceholders := false
     static quoteNumbersAsKey := true
     static recursePrevention := 1
     static singleLineArray := false
@@ -62,7 +63,7 @@ class StringifyConfig {
     Stringify is a function that converts an AHK object into a JSON string. I designed `Stringify`
     to output a 100% valid JSON string, while also enabling various customization options.
 
-    The characterstics which set this function apart from other Stringify functions are:
+    The characteristics which set this function apart from other Stringify functions are:
         - Iterate over all object properties, not just the base `__Enum` method.
         - Support for custom classes.
         - JSON string format and spacing customization.
@@ -89,7 +90,7 @@ class StringifyConfig {
     The limitations of this function are:
         - I have not written its counterpart, `Parse`, yet. But since it produces valid JSON, other
         parsers will work, with some considerations, listed a bit below.
-        - Invoking a custom class' `__Enum` method expects that the method accepts two ByRef varables
+        - Invoking a custom class' `__Enum` method expects that the method accepts two ByRef variables
         as parameters, in the standard `for k, v in obj` format. If the method is incompatible with
         this, the enumeration does not occur. Any properties that were captured prior are still
         maintained in the string, but the enumerable container is not included; its placeholder
@@ -187,10 +188,10 @@ class StringifyConfig {
         @
 
     - 2 or 'duplicate': All objects can be stringified a maximum of one time. If an object has been
-    tagged, it will be skipped all subequent encounters.
+    tagged, it will be skipped all subsequent encounters.
 
     When an object is skipped due to this option, a placeholder is applied to the JSON in the
-    format `"{objectPath.objectName}"`. Looking at the bove example, `$.` is the symbol for the
+    format `"{objectPath.objectName}"`. Looking at the above example, `$.` is the symbol for the
     root object, `John` is a first child of the root object. Since `$.John` was iterated first,
     that becomes the symbol used for subsequent encounters that are excluded due to this recursion
     setting.
@@ -307,7 +308,7 @@ class StringifyConfig {
     an object's property names, the purpose in implementing this option was to avoid errors when
     Stringifying custom classes that employ an `__Enum` method, since it would be unknown whether
     the class is enumerating it's properties or a set of items or some other thing, and also it
-    would be unknown where those values are contained. By defualt, when iterating over an object's
+    would be unknown where those values are contained. By default, when iterating over an object's
     `__Enum` method, `Stringify` assumes they are object properties unless either of these are true:
     option `enumAsMap` is true, or `Stringify` sets the `flagAsMap` flag as a result of the below test.
     @example
@@ -373,7 +374,7 @@ class StringifyConfig {
     For these three properties, assigning a positive integer value directs `Stringify` to print the
     object as a single line only if the number of characters in the object are less than or equal to
     the value. If the object exceeds the character limit, the object is printed in its expanded form.
-    Character count includes all characters except leading whitespace (i.e. the characterss between
+    Character count includes all characters except leading whitespace (i.e. the characters between
     the beginning of the line and the first non-whitespace character. This process is facilitated
     by a tracking mechanism that logs the string length at each depth level, and keeps track of
     the number of newline characters and indent characters used up to that point. When the object's
@@ -498,7 +499,7 @@ class StringifyConfig {
     are literal newlines within the JSON string, not escaped newlines.
     
     @property {String} [indent] - The string of characters used for indentation. One instance of this
-    string is included for each indent level. For exampe: if this option is "`s`s`s`s" and the current
+    string is included for each indent level. For example: if this option is "`s`s`s`s" and the current
     indent level is 2, there will be 8 spaces before the line of text.
 
     @property {Integer} [maxDepth] - When a positive integer, `Stringify` will only print objects
@@ -624,7 +625,7 @@ class StringifyConfig {
     @
 
     In the above example, when `Stringify` attempts to enumerate the class, it will try the
-    `__Enum` method. When the error occurs, it will include the error information in the JSON stirng.
+    `__Enum` method. When the error occurs, it will include the error information in the JSON string.
     Generally, when an error occurs, the object is not stringified and instead the placeholder is
     included. The exception is when iterating an object's `OwnProps()` method, in which case the
     error does not halt the process; only that specific property is skipped.
@@ -653,8 +654,9 @@ class StringifyConfig {
     `useOwnProps` is `true` and the stringified objects have properties that are accessible by
     `Object.Prototype.OwnProps()` in its 1-parameter mode. When `Stringify` gets to the enumeration
     method, it assigns any items accessed from the enumeration method to this property. If the object
-    already has the designted name, `Stringify` will append underscores to the name until a unique
+    already has the designated name, `Stringify` will append underscores to the name until a unique
     name is found.
  */
     ;@endregion
 
+    
