@@ -38,6 +38,7 @@ A customizable Stringify function that converts AHK objects to valid JSON string
       </li>
       <a href="#format"><li>Format</li></a>
         <ol type="1">
+          <a href="printfuncplaceholders"><li>printFuncPlaceholders</li></a>
           <a href="#hideerrors"><li>hideErrors</li></a>
           <a href="#quotenumbersaskey"><li>quoteNumbersAsKey</li></a>
           <a href="#escapenl"><li>escapeNL</li></a>
@@ -58,6 +59,7 @@ A customizable Stringify function that converts AHK objects to valid JSON string
         <a href="#setters"><li>Setters</li></a>
       </ol>
     </li>
+    <a href="#changelog"><li>Changelog</li></a>
 </ol>
 
 
@@ -67,7 +69,7 @@ A customizable Stringify function that converts AHK objects to valid JSON string
 
 For output examples, there's several listed below, and also for a full object example view the [Example-output.md](https://github.com/Nich-Cebolla/Stringify-ahk/blob/main/Example-output.md).
 
-The characterstics which set this function apart from other Stringify functions are:
+The characteristics which set this function apart from other Stringify functions are:
   - Iterate over all object properties, not just the base `__Enum` method.
   - Support for custom classes.
   - JSON string format and spacing customization.
@@ -83,11 +85,11 @@ In selection order (top options are prioritized over bottom):
 - Defining the options in the `StringifyConfig.ahk` file.
 - Defining the options in `Stringify`'s static `params` property.
 
-The purpose of the `StringifyConfiuration.ahk` is to allow the user to define external default options, so if the main script is updated, the user is saved the hassle of needing to copy over their preferred configuration. To use this external configuration, all one needs to do is either keep it in the same directory as the parent script, or #include it as one would any other script. `Stringify` will detect if this configuration is in use and adapt accordingly. The `params` parameter of the function accepts an object, and so any defaults can be supersededas needed on-the-fly.
+The purpose of the `StringifyConfig.ahk` is to allow the user to define external default options, so if the main script is updated, the user is saved the hassle of needing to copy over their preferred configuration. To use this external configuration, all one needs to do is either keep it in the same directory as the parent script, or #include it as one would any other script. `Stringify` will detect if this configuration is in use and adapt accordingly. The `params` parameter of the function accepts an object, and so any defaults can be superseded as needed on-the-fly.
 
 The limitations of this function are:
 - I have not written its counterpart, `Parse`, yet. But since it produces valid JSON, other parsers will work, with some considerations, listed a bit below.
-- Invoking a custom class' `__Enum` method expects that the method accepts two ByRef varables as parameters, in the standard `for k, v in obj` format. If the method is incompatible withthis, the enumeration does not occur. Any properties that were captured prior are still maintained in the string, but the enumerable container is not included; its placeholderis printed instead. If `hideErrors` is, false, a placeholder is printed and the error text listed next to the placeholder. If `hideErrors` is true, only the placeholder is printed in the string.
+- Invoking a custom class' `__Enum` method expects that the method accepts two ByRef variables as parameters, in the standard `for k, v in obj` format. If the method is incompatible with this, the enumeration does not occur. Any properties that were captured prior are still maintained in the string, but the enumerable container is not included; its placeholderis printed instead. If `hideErrors` is, false, a placeholder is printed and the error text listed next to the placeholder. If `hideErrors` is true, only the placeholder is printed in the string.
 
 Parsing considerations:
 - `Stringify` uses placeholder names for item containers when needed. For example, if a map object has also been assigned properties, `Stringify` does not assign the map's items to the the object itself. The items are assigned to a container property, by default named `__MapItem`. The names are customizable. But if this is parsed by another script, the map items will be on that property and the base object would be an object, not a map. See the section `useOwnProps` for more details.
@@ -133,9 +135,9 @@ without intervention. `recursePrevention` directs `Stringify` to assign a tag to
 that has been stringified. The tags are removed when the procedure exits. Options are:
 - 0 or false: No recursion prevention.
 - 1 or "Recursion": `Stringify` will skip over properties when the value of the property is a parent object. Objects in general may be stringified more than once, but only when the subsequent occurrence of the object does not occur on a child's property.
-- 2 or 'duplicate': All objects can be stringified a maximum of one time. If an object has been tagged, it will be skipped all subequent encounters.
+- 2 or 'duplicate': All objects can be stringified a maximum of one time. If an object has been tagged, it will be skipped all subsequent encounters.
 
-When an object is skipped due to this option, a placeholder is applied to the JSON in theformat `"{objectPath.objectName}"`. Looking at the above example, `$.` is the symbol for the root object, `John` is a first child of the root object. Since `$.John` was iterated first,that becomes the symbol used for subsequent encounters that are excluded due to this recursion option.
+When an object is skipped due to this option, a placeholder is applied to the JSON in the format `"{objectPath.objectName}"`. Looking at the above example, `$.` is the symbol for the root object, `John` is a first child of the root object. Since `$.John` was iterated first,that becomes the symbol used for subsequent encounters that are excluded due to this recursion option.
 
 
 In the below example, `Stringify` will allow `obj.John` to be stringified twice, because they are on separate paths.
@@ -209,7 +211,7 @@ MsgBox(str)
 An array of strings or a single string that will be used to ignore properties when stringifying an object. There are two approaches to using this option.
 
 - Strict mode: If your object has properties that share a name, and you want to exclude one but not the other, then you must distinguish them by including the path. For `Stringify` to know to use strict mode, begin the path with the root symbol `$.` and include the path to the property including property name.
-- Match mode: Any strings that are included in `ignore` that do not begin with `$.` are consideredto be used for matching anywhere in an object's name. RegEx pattern matching is employed by direct application of the value. Below is the literal function in use, where `name` represent the key or property name of the object in question, `item` is an item in the `ignore` array, `this.active` contains the current object path up to but before the object's prop/key name.
+- Match mode: Any strings that are included in `ignore` that do not begin with `$.` are considered to be used for matching anywhere in an object's name. RegEx pattern matching is employed by direct application of the value. Below is the literal function in use, where `name` represent the key or property name of the object in question, `item` is an item in the `ignore` array, `this.active` contains the current object path up to but before the object's prop/key name.
 
 ```ahk
 CheckIgnore(name) {
@@ -301,7 +303,7 @@ To prevent complications such as JSON syntax errors due to duplicate keys, or ov
 
 If an object already has a property with its associated item name, `Stringify` will append underscores repeatedly until a unique name is found.
 
-Although map items and Array items aren't properties, and therefore do not conflict with an object's property names, the purpose in implementing this option was to avoid errors when Stringifying custom classes that employ an `__Enum` method, since it would be unknown whether the class is enumerating it's properties or a set of items or some other thing, and also it would be unknown where those values are contained. By defualt, when iterating over an object's `__Enum` method, `Stringify` assumes they are object properties unless either of these are true: option `enumAsMap` is true, or `Stringify` sets the `flagAsMap` flag as a result of the below test.
+Although map items and Array items aren't properties, and therefore do not conflict with an object's property names, the purpose in implementing this option was to avoid errors when Stringifying custom classes that employ an `__Enum` method, since it would be unknown whether the class is enumerating it's properties or a set of items or some other thing, and also it would be unknown where those values are contained. By default, when iterating over an object's `__Enum` method, `Stringify` assumes they are object properties unless either of these are true: option `enumAsMap` is true, or `Stringify` sets the `flagAsMap` flag as a result of the below test.
 
 ```ahk
 try {
@@ -367,7 +369,7 @@ MsgBox(str) ; [1,2,3,...200]
 
 {Integer}
 
-For these three properties, assigning a positive integer value directs `Stringify` to print the object as a single line only if the number of characters in the object are less than or equal to the value. If the object exceeds the character limit, the object is printed in its expanded form. Character count includes all characters except leading whitespace (i.e. the characterss between the beginning of the line and the first non-whitespace character. This process is facilitated by a tracking mechanism that logs the string length at each depth level, and keeps track of the number of newline characters and indent characters used up to that point. When the object's stringification is complete and that depth exits, the character count is calculated and compared with the limit. If the limit is exceeded, no changes are made. If the count is beneath the limit, the object is condensed to a single line.
+For these three properties, assigning a positive integer value directs `Stringify` to print the object as a single line only if the number of characters in the object are less than or equal to the value. If the object exceeds the character limit, the object is printed in its expanded form. Character count includes all characters except leading whitespace (i.e. the characters between the beginning of the line and the first non-whitespace character. This process is facilitated by a tracking mechanism that logs the string length at each depth level, and keeps track of the number of newline characters and indent characters used up to that point. When the object's stringification is complete and that depth exits, the character count is calculated and compared with the limit. If the limit is exceeded, no changes are made. If the count is beneath the limit, the object is condensed to a single line.
 
 ```ahk
 coolRocks := Map('geode', {weight: 5, color: 'purple'}, 'quartz', {weight: 3, color: 'white'}
@@ -545,6 +547,12 @@ MsgBox(str)
 
 ## Format
 
+### printFuncPlaceholders
+
+{Boolean}
+
+When true, `Stringify` will include placeholders for functions in the JSON string. The placeholder will be `"{Func}"`, `"{BoundFunc}"`, or `"{Closure}"`. When false, functions are not included in the string.
+
 ### hideErrors
 
 {Boolean}
@@ -614,7 +622,7 @@ msgbox(str)
 ; }
 ```
 
-In the above example, when `Stringify` attempts to enumerate the class, it will try the `__Enum` method. When the error occurs, it will include the error information in the JSON stirng. Generally, when an error occurs, the object is not stringified and instead the placeholder is included. The exception is when iterating an object's `OwnProps()` method, in which case the error does not halt the process; only that specific property is skipped.
+In the above example, when `Stringify` attempts to enumerate the class, it will try the `__Enum` method. When the error occurs, it will include the error information in the JSON string. Generally, when an error occurs, the object is not stringified and instead the placeholder is included. The exception is when iterating an object's `OwnProps()` method, in which case the error does not halt the process; only that specific property is skipped.
 
 Regarding standard arrays, unset indices are handle by `Stringify`. These are represented by `""` in the string. Regarding maps, no error handling is built-in. It is expected that a map's items are enumerable, and so if an error occurs we will want to see the error.
 
@@ -637,7 +645,7 @@ The literal string of characters used to replace `r`n. When this option is set t
 
 {String}
 
-These properties are used to assign a placeholder for items acquired from the `__Enum` method. The default values are `__ArrayItem`, `__MapItem`, and `__EnumItem`. This only has an effect when `useOwnProps` is `true` and the stringified objects have properties that are accessible by `Object.Prototype.OwnProps()` in its 1-parameter mode. When `Stringify` gets to the enumeration method, it assigns any items accessed from the enumeration method to this property. If the object already has the designted name, `Stringify` will append underscores to the name until a unique name is found.
+These properties are used to assign a placeholder for items acquired from the `__Enum` method. The default values are `__ArrayItem`, `__MapItem`, and `__EnumItem`. This only has an effect when `useOwnProps` is `true` and the stringified objects have properties that are accessible by `Object.Prototype.OwnProps()` in its 1-parameter mode. When `Stringify` gets to the enumeration method, it assigns any items accessed from the enumeration method to this property. If the object already has the designated name, `Stringify` will append underscores to the name until a unique name is found.
 
 # Details
 
@@ -645,7 +653,7 @@ This section is intended for those who may want to modify or adapt the script fo
 
 ## Tracker
 
-`Stringify.Tracker` contains methods that enable the tracking of numbers and conditions that are necessry for the function's logic to work as expected. The most challenging component of this for me was enabling the use of formatting the formatting options, such as the line spacing and limits. I reworked the concept three times until landing on its present form, which works well and is not complicated once you know how it works.
+`Stringify.Tracker` contains methods that enable the tracking of numbers and conditions that are necessary for the function's logic to work as expected. The most challenging component of this for me was enabling the use of formatting the formatting options, such as the line spacing and limits. I reworked the concept three times until landing on its present form, which works well and is not complicated once you know how it works.
 
 `Tracker.prototype` will be referred to as simply `tracker`.
 
@@ -786,9 +794,9 @@ Out(str) {
 
 The stringification process begins with a switch function. Each object type, "Map", "Array", and "Object" has its own sequence of actions. I refactored the sequences as best I could into the current series of mini-functions. Any further refactoring would be trading one convenience for another hassle, and so this is where I found it best to stop.
 
-There's significant asymmetry among the object type's different sequencs, which made the procedure difficult to balance with the configuration options. Finding the right location to add substrings to the primary string was a challenge, along with identifying the correct logic for controlling the newlines, indents, and brackets. Were I to do this again, I would first implement a debugging mechanism, as this would accomplish both making debugging easier, and laying the groundwork for the core tracking mechanism as well.
+There's significant asymmetry among the object type's different sequences, which made the procedure difficult to balance with the configuration options. Finding the right location to add substrings to the primary string was a challenge, along with identifying the correct logic for controlling the newlines, indents, and brackets. Were I to do this again, I would first implement a debugging mechanism, as this would accomplish both making debugging easier, and laying the groundwork for the core tracking mechanism as well.
 
-I used descriptive variable names, and so reading the function shouldn't be a problem, but I will highlight here the key areas to focus one's attention on when adusting the function.
+I used descriptive variable names, and so reading the function shouldn't be a problem, but I will highlight here the key areas to focus one's attention on when adjusting the function.
 
 - When making changes, it's best to take the time to map out what conditions influence the subject action / property. There is a healthy number of conditional flags in use with a degree of interconnectedness across sequences. I tried to be explicit where appropriate, such as using ByRef function parameters to explicitly indicate what is being modified by what function. But some information was best kept in the function scope rather than tied to a ByRef var.
 
@@ -868,3 +876,10 @@ These functions contain actions shared by all of the sequences.
 Each of these functions, except `_SetSingleLine_()` handle the production of substrings.
 
 `_SetSingleLine_()` handles the removal of external whitespace when reducing an object to a single line.
+
+# Changelog
+
+### 12/15/2024
+- Changed a line that used syntax only available in alpha. Specifically: `this.DefineProp('__Get', {Call: (self, key, *) => self.opt.HasOwnProp(key) ? self.opt.%key% : unset})` is now `this.DefineProp('__Get', {Call: (self, key, *) => self.opt.HasOwnProp(key) ? self.opt.%key% : ''})`
+- Installed a spellchecker and corrected spelling.
+- Implemented `printFuncPlaceholders` option. Before this, the function always printed placeholders for functions.
