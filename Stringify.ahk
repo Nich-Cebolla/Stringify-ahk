@@ -18,6 +18,7 @@ class Stringify {
       , nlCharLimitArray: 0
       , nlCharLimitMap: 0
       , nlCharLimitObj: 0
+      , printFuncPlaceholders: false
       , quoteNumbersAsKey: true
       , recursePrevention: 1
       , singleLineArray: false
@@ -30,28 +31,38 @@ class Stringify {
 
     ;@region Call
     /** ### Stringify()
-     * Available options to pass in the `params` object:
-     * @param {Boolean} [enumAsMap]
-     * @param {String} [escapeNL]
-     * @param {Boolean} [hideErrors]
-     * @param {Array} [ignore]
-     * @param {String} [indent]
-     * @param {String} [itemContainerArray]
-     * @param {String} [itemContainerEnum]
-     * @param {String} [itemContainerMap]
-     * @param {Number} [maxDepth]
-     * @param {String} [newline]
-     * @param {Number} [newlineDepthLimit]
-     * @param {Number} [nlCharLimitArray]
-     * @param {Number} [nlCharLimitMap]
-     * @param {Number} [nlCharLimitObj]
-     * @param {Boolean} [quoteNumbersAsKey]
-     * @param {Number} [recursePrevention]
-     * @param {Boolean} [singleLineArray]
-     * @param {Boolean} [singleLineMap]
-     * @param {Boolean} [singleLineObj]
-     * @param {Boolean} [useEnum]
-     * @param {Boolean} [useOwnProps]
+     * Available options to pass in the `params` object. See the StringifyConfig.ahk document or
+     * the README.md {@link https://github.com/Nich-Cebolla/Stringify-ahk} document for full details.
+     * @param {Boolean} [enumAsMap] - When true, all values obtained using `__Enum()` are assumed to belong to a map object.
+     * @param {String} [escapeNL] - The literal string of characters to replace matches with '\R.
+     * @param {Boolean} [hideErrors] - When true, error text is not printed within the JSON.
+     * @param {Array|String} [ignore] - A string or array of strings containing property names / object paths that will not be stringified.
+     * @param {String} [indent] - The literal string to use as indentation.
+     * @param {String} [itemContainerArray] - The name given to the faux array container.
+     * @param {String} [itemContainerEnum] - The name given to the faux enum container.
+     * @param {String} [itemContainerMap] - The name given to the faux map container.
+     * @param {Number} [maxDepth] - The maximum depth that will be recursed into an stringified.
+     * @param {String} [newline] - The literal string used for new lines.
+     * @param {Integer} [newlineDepthLimit] - The maximum depth at which newlines will be printed in the JSON string.
+     * @param {Integer} [nlCharLimitArray] - When an object's stringification is complete, if the length
+     * of the object's string representation is under this number, it is condensed to one line.
+     * @param {Integer} [nlCharLimitMap] - When an object's stringification is complete, if the length
+     * of the object's string representation is under this number, it is condensed to one line.
+     * @param {Integer} [nlCharLimitObj] - When an object's stringification is complete, if the length
+     * of the object's string representation is under this number, it is condensed to one line.
+     * @param {Boolean} [printFuncPlaceholders] - When true, functions are represented in the JSON string
+     * as "{Func}", "{BoundFunc}", or "{Closure}".
+     * @param {Boolean} [quoteNumbersAsKey] - Quotes numbers when used as a map key.
+     * @param {Integer|String} [recursePrevention] - Valid values are: 0 or false - no protection
+     * 1 or 'Recursion' - properties that have values that are a parent object are not recurse into.
+     * 2 or 'duplicate' - all objects are stringified a maximum of 1 time.
+     * @param {Boolean} [singleLineArray] - All arrays are condensed to a single line.
+     * @param {Boolean} [singleLineMap] - All maps are condensed to a single line.
+     * @param {Boolean} [singleLineObj] - All objects are condensed to a single line.
+     * @param {Boolean} [useEnum] - Iterate all object's `__Enum()` method. When false, maps and arrays
+     * are still iterated using their basic `__Enum()` method.
+     * @param {Boolean} [useOwnProps] - Iterate all objects own properties. When false, objects are
+     * still iterated using their `OwnProps()` method.
      * @returns {String}
      */
     static Call(obj, &str,  params?) {
@@ -96,8 +107,6 @@ class Stringify {
                     _OwnProps_(true, 'E'), flagEnum := 0, keys := []
                     try {
                         for key, val in obj {
-                            if tracker.active ='$'
-                                sleep 1
                             if tracker.CheckIgnore(key)
                                 continue
                             if IsObject(key) {
@@ -118,7 +127,9 @@ class Stringify {
                         tracker.ToggleSingleLine(true, 'O', StrLen(str)), _Open_(&str, '{'), flag := 0
                         for key, val in obj {
                             if tracker.CheckIgnore(key)
-                                return
+                                continue
+                            if IsObject(val) && RegExMatch(Type(val), 'Func|BoundFunc|Closure') && !opt.printFuncPlaceholders
+                                continue
                             _HandleNewItem_(&str, &flag), str .= '"' key '": ', _Process_(obj, &str, val, key)
                         }
                         _Close_(&str, '}'), _SetSingleLine_(tracker.ToggleSingleLine(false, 'O', StrLen(str)))
@@ -185,6 +196,8 @@ class Stringify {
                 if !noOpen
                     _Open_(&ownPropsStr, '{')
                 for prop in props {
+                    if IsObject(obj.%prop%) && RegExMatch(Type(obj.%prop%), 'Func|BoundFunc|Closure') && !opt.printFuncPlaceholders
+                        continue
                     _HandleNewItem_(&ownPropsStr, &flag), ownPropsStr .= '"' prop '": ', flagDiscarded := false
                     if IsSet(discardGroup) {
                         for item in tracker.discarded[discardGroup] {
@@ -221,6 +234,8 @@ class Stringify {
             else {
                 tracker.ToggleSingleLine(true, 'M', StrLen(str)), _Open_(&str, '['), flag := 0
                 for key, val in obj {
+                    if IsObject(val) && RegExMatch(Type(val), 'Func|BoundFunc|Closure') && !opt.printFuncPlaceholders
+                        continue
                     if IsObject(key)
                         key := '"{' _GetTypeString_(key) '}"'
                     if tracker.CheckIgnore(key)
@@ -382,8 +397,8 @@ class Stringify {
                     Stringify.Tracker.__ThrowTagError()
                 this.recursePrevention := match.mark, obj.__StringifyTag := '$'
             }
-            this.parent := obj, this.indentStr.Push(opt.indent), this.lenPrimary.defaut := this.lenEnumObj.default := 0
-            this.DefineProp('__Get', {Call: (self, key, *) => self.opt.HasOwnProp(key) ? self.opt.%key% : unset})
+            this.parent := obj, this.indentStr.Push(opt.indent), this.lenPrimary.default := this.lenEnumObj.default := 0
+            this.DefineProp('__Get', {Call: (self, key, *) => self.opt.HasOwnProp(key) ? self.opt.%key% : ''})
             this.DefineProp('__Set', {Call: ___Set_}), this.ToggleSingleLine(true, 'M', 0)
             ___Set_(self, key, value, *) {
                 if this.opt.HasOwnProp(key)
