@@ -2053,34 +2053,31 @@ The purpose of the `StringifyConfig.ahk` is to allow the user to define external
 
 [color=#000040][size=150]List of Options[/size][/color]
 [color=#400040][size=125]For a description of each option view the README.md document on the Github page, or view the `StringifyConfig.ahk` file below.[/size][/color]
-- @param {Boolean} [enumAsMap] - When true, all values obtained using `__Enum()` are assumed to belong to a map object.
-- @param {String} [escapeNL] - The literal string of characters to replace matches with '\R'.
-- @param {Boolean} [hideErrors] - When true, error text is not printed within the JSON.
-- @param {Array|String} [ignore] - A string or array of strings containing property names / object paths that will not be stringified.
-- @param {String} [indent] - The literal string to use as indentation.
-- @param {String} [itemContainerArray] - The name given to the faux array container.
-- @param {String} [itemContainerEnum] - The name given to the faux enum container.
-- @param {String} [itemContainerMap] - The name given to the faux map container.
-- @param {Number} [maxDepth] - The maximum depth that will be recursed into and stringified.
-- @param {String} [newline] - The literal string used for new lines.
-- @param {Integer} [newlineDepthLimit] - The maximum depth at which newlines will be printed in the JSON string.
-- @param {Integer} [nlCharLimitArray] - When an object's stringification is complete, if the length of the object's string representation is under this number, it is condensed to one line.
-- @param {Integer} [nlCharLimitMap] - When an object's stringification is complete, if the length
-- of the object's string representation is under this number, it is condensed to one line.
-- @param {Integer} [nlCharLimitObj] - When an object's stringification is complete, if the length
-- of the object's string representation is under this number, it is condensed to one line.
-- @param {Boolean} [printFuncPlaceholders] - When true, functions are represented in the JSON string
-- as "{Func}", "{BoundFunc}", or "{Closure}".
-- @param {Boolean} [quoteNumbersAsKey] - Quotes numbers when used as a map key.
-- @param {Integer|String} [recursePrevention] - Valid values are:
-- 0 or false - no protection
+- @param {Boolean} [size=115][color=#8000BF][enumAsMap][/color][/size] - When true, all values obtained using `__Enum()` are assumed to belong to a map object.
+- @param {String} [size=115][color=#8000BF][escapeNL][/color][/size] - The literal string of characters to replace matches with '\R'.
+- @param {Boolean} [size=115][color=#8000BF][hideErrors][/color][/size] - When true, error text is not printed within the JSON.
+- @param {Array|String} [size=115][color=#8000BF][ignore][/color][/size] - A string or array of strings containing property names / object paths that will not be stringified.
+- @param {String} [size=115][color=#8000BF][indent][/color][/size] - The literal string to use as indentation.
+- @param {String} [size=115][color=#8000BF][itemContainerArray][/color][/size] - The name given to the faux array container.
+- @param {String} [size=115][color=#8000BF][itemContainerEnum][/color][/size] - The name given to the faux enum container.
+- @param {String} [size=115][color=#8000BF][itemContainerMap][/color][/size] - The name given to the faux map container.
+- @param {Number} [size=115][color=#8000BF][maxDepth][/color][/size] - The maximum depth that will be recursed into and stringified.
+- @param {String} [size=115][color=#8000BF][newline][/color][/size] - The literal string used for new lines.
+- @param {Integer} [size=115][color=#8000BF][newlineDepthLimit][/color][/size] - The maximum depth at which newlines will be printed in the JSON string.
+- @param {Integer} [size=115][color=#8000BF][nlCharLimitArray][/color][/size] - When an object's stringification is complete, if the length of the object's string representation is under this number, it is condensed to one line.
+- @param {Integer} [size=115][color=#8000BF][nlCharLimitMap][/color][/size] - When an object's stringification is complete, if the length of the object's string representation is under this number, it is condensed to one line.
+- @param {Integer} [size=115][color=#8000BF][nlCharLimitObj][/color][/size] - When an object's stringification is complete, if the length of the object's string representation is under this number, it is condensed to one line.
+- @param {Boolean} [size=115][color=#8000BF][printFuncPlaceholders][/color][/size] - When true, functions are represented in the JSON string as "{Func}", "{BoundFunc}", or "{Closure}".
+- @param {Boolean} [size=115][color=#8000BF][quoteNumbersAsKey][/color][/size] - Quotes numbers when used as a map key.
+- @param {Integer|String} [size=115][color=#8000BF][recursePrevention][/color][/size] - Valid values are:
+[indent=1]- 0 or false - no protection
 - 1 or 'Recursion' - properties that have values that are a parent object are not recurse into.
-- 2 or 'duplicate' - all objects are stringified a maximum of 1 time.
-- @param {Boolean} [singleLineArray] - All arrays are condensed to a single line.
-- @param {Boolean} [singleLineMap] - All maps are condensed to a single line.
-- @param {Boolean} [singleLineObj] - All objects are condensed to a single line.
-- @param {Boolean} [useEnum] - Iterate all object's `__Enum()` method. When false, maps and arrays are still iterated using their basic `__Enum()` method.
-- @param {Boolean} [useOwnProps] - Iterate all objects own properties. When false, objects are still iterated using their `OwnProps()` method.
+- 2 or 'duplicate' - all objects are stringified a maximum of 1 time.[/indent]
+- @param {Boolean} [size=115][color=#8000BF][singleLineArray][/color][/size] - All arrays are condensed to a single line.
+- @param {Boolean} [size=115][color=#8000BF][singleLineMap][/color][/size] - All maps are condensed to a single line.
+- @param {Boolean} [size=115][color=#8000BF][singleLineObj][/color][/size] - All objects are condensed to a single line.
+- @param {Boolean} [size=115][color=#8000BF][useEnum][/color][/size] - Iterate all object's `__Enum()` method. When false, maps and arrays are still iterated using their basic `__Enum()` method.
+- @param {Boolean} [size=115][color=#8000BF][useOwnProps][/color][/size] - Iterate all objects own properties. When false, objects are still iterated using their `OwnProps()` method.
 
 [color=#000040][size=150]Stringify.ahk[/size][/color]
 
@@ -2722,12 +2719,13 @@ class StringifyConfig {
                 14. indent
                 15. maxDepth
             D. Format
-                16. hideErrors
-                17. quoteNumbersAsKey
-                18. escapeNL
-                19. itemContainerArray
-                20. itemContainerEnum
-                21. itemContainerMap
+                16. printFuncPlaceholders
+                17. hideErrors
+                18. quoteNumbersAsKey
+                19. escapeNL
+                20. itemContainerArray
+                21. itemContainerEnum
+                22. itemContainerMap
         III. Details
 */
 
@@ -3230,6 +3228,12 @@ class StringifyConfig {
     ;@region Format
 
 
+    @property {Boolean} [printFuncPlaceholders] - When true, `Stringify` will include placeholders
+    for functions in the JSON string. The placeholder will be `"{Func}"`, `"{BoundFunc}"`, or
+    `"{Closure}"`. When false, functions are not included in the string.
+
+
+
     @property {Boolean} [hideErrors] - To allow this script to be generalizable to custom classes,
     some error handling is incorporated into `Stringify`. When `hideErrors` is false, `Stringify`
     includes error text within the JSON string next to the placeholder for the object that raised
@@ -3337,6 +3341,8 @@ class StringifyConfig {
 
 
 [color=#000040][size=150]Changelog[/size][/color]
+[color=#000040][size=120]12/17/2024[/size][/color]
+- Added `printFuncPlaceholders` to StringifyConfig.ahk
 [color=#000040][size=120]12/15/2024[/size][/color]
 - Changed a line that used syntax only available in alpha. Specifically: [c]this.DefineProp('__Get', {Call: (self, key, *) => self.opt.HasOwnProp(key) ? self.opt.%key% : unset})[/c]
 - Installed a spellchecker and corrected spelling.
