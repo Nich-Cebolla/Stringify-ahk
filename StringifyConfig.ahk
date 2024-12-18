@@ -48,12 +48,13 @@ class StringifyConfig {
                 14. indent
                 15. maxDepth
             D. Format
-                16. hideErrors
-                17. quoteNumbersAsKey
-                18. escapeNL
-                19. itemContainerArray
-                20. itemContainerEnum
-                21. itemContainerMap
+                16. printFuncPlaceholders
+                17. hideErrors
+                18. quoteNumbersAsKey
+                19. escapeNL
+                20. itemContainerArray
+                21. itemContainerEnum
+                22. itemContainerMap
         III. Details
 */
 
@@ -554,6 +555,12 @@ class StringifyConfig {
 
 
     ;@region Format
+
+
+    @property {Boolean} [printFuncPlaceholders] - When true, `Stringify` will include placeholders
+    for functions in the JSON string. The placeholder will be `"{Func}"`, `"{BoundFunc}"`, or
+    `"{Closure}"`. When false, functions are not included in the string.
+
 
 
     @property {Boolean} [hideErrors] - To allow this script to be generalizable to custom classes,
