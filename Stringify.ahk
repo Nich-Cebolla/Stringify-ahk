@@ -1,3 +1,4 @@
+
 /*
     - Added `nlCharLimitAll`
     - need to describe how to ignoreProp items in an array
@@ -92,15 +93,10 @@ class Stringify {
     class params {
         ; Enum options
         static callOwnProps := 2
-        static ignoreProps := ''
-        static ignoreKeys := ''
+        static ignoreProps := []
+        static ignoreKeys := []
+        static propsList := ''
         static recursePrevention := 1
-        ; Builtins
-        static includeBuiltinTypes := false
-        static includeBuiltinProps := ''
-        static ignoreBuiltinProps := ''
-        ; Directs `Stringify` to get properties of Gui objects and Gui.Control objects.
-        static includeGui := false
 
         ; Newline and indent options
         static indent := '`s`s`s`s'
@@ -121,16 +117,17 @@ class Stringify {
         ; Print options
         static escapeNL := ''
         static printErrors := false
-        static printFuncPlaceholders := false
         static printPlaceholders := false
         static quoteNumericKeys := true
         static printTypeTag := true
         static itemContainerArray := '__ArrayItem'
         static itemContainerMap := '__MapItem'
+        static unsetArrayItem := '""'
 
         ; Misc options
         static returnString := false
         static deleteTags := true
+        static throwErrors := true
         
         __New(obj, params) {
             for key, val in Stringify.Params.OwnProps() {
@@ -138,7 +135,21 @@ class Stringify {
                 && StringifyConfig.HasOwnProp(key) ? StringifyConfig.%key% : val
             }
         }
+        ; __New(obj, params) {
+        ;     this.params := params
+        ;     this.DefineProp('__Get', {Call:_Get_})
+
+        ;     _Get(self, prop, *) {
+        ;         if self.params.HasOwnProp(prop)
+        ;             return self.params.%prop%
+        ;         else if IsSet(StringifyConfig) && StringifyConfig.HasOwnProp(prop)
+        ;             return StringifyConfig.%prop%
+        ;         else
+        ;             return Stringify.params.%prop%
+        ;     }
+        ; }
     }
+    static patternNonIterables := '\bFunc\b|\bBoundFunc\b|\bEnumerator\b|\bClosure\b|\bComValue\b'
     
     ;@region Call
     /** ### Stringify()
@@ -202,8 +213,9 @@ class Stringify {
      * @property {Boolean} [quoteNumericKeys] - When true, map keys that are numbers are always quoted.
      * When false, numbers that are map keys are printed as numbers without quotes.
      * @property {Integer|String} [recursePrevention] - Valid values are: 0 or false - no protection
-     * 1 or 'Recursion' - properties that have values that are a parent object are not recurse into.
-     * 2 or 'duplicate' - all objects are stringified a maximum of 1 time.
+     * 1 - `Stringify` allows multiple stringifications, but will not recurse into any objects that
+     * would cause infinite recursion due to having a property that is also a parent object.
+     * 2 - Enforces a maximum of one stringification per object.
      * @property {Boolean} [singleLine] - When true, the entire JSON string is printed in a single line
      * (no newlines or indentation). This option supersedes any other related option.
      * @property {Boolean} [singleLineArray] - All arrays are condensed to a single line each.
@@ -238,7 +250,7 @@ class Stringify {
      * either `instance.Base.__Class` or `ClassObj.Prototype.__Class`. The search is case insensitive.
      * `Stringify` searches using this pattern:
      * @example
-     * RegExMatch(params.callOwnProps, 'i)(^|(?<=\s))(?<type>' (Type(obj) == 'Class'
+     * RegExMatch(params.callOwnProps, 'i)(^|(?<=\s))(?<type>' obj is Class
      * ? obj.Prototype.__Class : obj.Base.__Class) ')(?::(?<mode>\d+))?((?=\s)|$)', &match)
      * @
      * @property {Boolean} [returnString] - When true, `Stringify` will return the string in addition
@@ -249,25 +261,58 @@ class Stringify {
         static controller, HandleObjects, HandleBuiltins, ErrorAction, builtinsList, CallMapEnum
         , CallOwnProps, stringifyTypeTag := '__StringifyTypeTag', params
         , stringifyTag := '__StringifyTag', stringifyAll
-        local props, prop, key, val, typeStr, ownPropsStr, discardGroup, keys, tempStr
+        local props, prop, key, typeStr, ownPropsStr, discardGroup, keys
         , enum := flagEnum := flagAsMap := flag := flagSingleLine := false
 
         ;@region Init
         if !IsSet(controller) {
-            if !IsObject(obj)
-                throw TypeError('A non-object value was passed to the function.', -1, 'Type: ' Type(obj))
             str := '', controller := Stringify.Controller(obj, options??{}, stringifyTag, stringifyTypeTag), params := controller.params
             InSequence := [], HandleObjects := []
             CallMapEnum := CallOwnProps := ErrorAction := HandleBuiltins := stringifyAll := ''
 
+            ;@region HandleObjects
+            ; return values: 0 - no change; 1 - break and continue to next obj
+            ; 2 - break and get standard placeholder; 3 - break and get duplicate placeholder
+            ; 4 - break and recurse into obj
+            HandleObjects := []
+            if params.printPlaceholders
+                returnValue := 2, duplicateReturnValue := 3
+            else
+                returnValue := duplicateReturnValue := 1
+            if params.maxDepth
+                HandleObjects.Push(_HandleMaxDepth.Bind(returnValue))
+            if params.recursePrevention = 1
+                HandleObjects.Push(_RecursePrevention1.Bind(duplicateReturnValue))
+            else if params.recursePrevention = 2
+                HandleObjects.Push(_RecursePrevention2.Bind(duplicateReturnValue))
+            HandleObjects.Push(_IsMapOrArray)
+            HandleObjects.Push(_HandleNonIterableValue.Bind(returnValue, Stringify.patternNonIterables))
+            _RecursePrevention1(duplicateReturnValue, val) => val.HasOwnProp(stringifyTag) && InStr(controller.active.path, val.%stringifyTag%) ? duplicateReturnValue : 0
+            _RecursePrevention2(duplicateReturnValue, val) => val.HasOwnProp(stringifyTag) ? duplicateReturnValue : 0
+            ; I put `maxDepth` after `recursePrevention` to provide the opportunity to print a duplicate placeholder
+            ; if appropriate, instead of a standard placeholder, if the two conditions ever occur in the same object.
+            _HandleMaxDepth(returnValue, *) => controller.depth == params.maxDepth ? returnValue : 0
+            _IsMapOrArray(val) => RegExMatch(Type(val), '\bMap\b|\bArray\b') ? 4 : 0 ; returning 4 is only valid if this comes after `maxDepth` and `recursePrevention`
+            _HandleNonIterableValue(returnValue, pattern, val) {
+                if RegExMatch(Type(val), pattern) || (!params.propsList
+                || !params.propsList.Has(Type(val))) && !ObjOwnPropCount(val)
+                    return returnValue
+            }
+            ;@endregion
+
             ;@region ErrorAction
             if params.printErrors {
-                if Type(params.printErrors) == 'String'
-                    ErrorAction := _ProcessErrorLimited_.Bind(RegExReplace(params.printErrors, 'i)[^MLWEFLST]', ''))
+                if params.printErrors is String
+                    ErrorAction := _ProcessErrorLimited.Bind(RegExReplace(params.printErrors, 'i)[^MLWEFLST]', ''))
                 else
-                    ErrorAction := _ProccessErrorAll_
+                    ErrorAction := _ProccessErrorAll
+            } else if params.throwErrors
+                ErrorAction := _ThrowError
+
+            _ThrowError(err) {
+                throw err
             }
-            _ProccessErrorAll_(err) {
+            _ProccessErrorAll(err) {
                 return (
                     'Type: ' Type(err) '`t'
                     'Message: ' err.message '`t'
@@ -278,12 +323,12 @@ class Stringify {
                     'Stack: ' err.Stack
                 )
             }
-            _ProcessErrorLimited_(param, err) {
+            _ProcessErrorLimited(param, err) {
                 local str := ''
                 for char in StrSplit(param)
-                    str .= _GetStr_(char) '`t'
+                    str .= _GetStr(char) '`t'
                 return Trim(str, '`t')
-                _GetStr_(char) {
+                _GetStr(char) {
                     switch char {
                         case 'M':
                             return 'Message: ' err.Message
@@ -304,184 +349,55 @@ class Stringify {
             }
             ;@endregion
 
-
-            ;@region Array
-            CallArrayEnum(obj) {
-                local flagComma := 0, i := 0
-                if !obj.length {
-                    str .= '[]'
-                    return
-                }
-                _Open_(controller.active.flagOwnProps||unset)
-                while ++i <= obj.length {
-                    if !obj.Has(i) {
-                        _HandleComma_(), str .= '""'
-                        continue
-                    }
-                    try
-                        val := obj[i]
-                    catch Error as err {
-                        if ErrorAction
-                            _HandleComma_(), val := ErrorAction(err), _SetVal_(&val)
-                        continue
-                    }
-                    if IsObject(val) {
-                        if result := _HandleObject_(val) {
-                            if IsNumber(result)
-                                _HandleComma_(), controller.In(val, i), Stringify(val, &str)
-                            else
-                                _HandleComma_(), _SetVal_(&result)
-                        }
-                    } else
-                        _HandleComma_(), _SetVal_(&val)
-                }
-                _Close_(controller.active.flagOwnProps||unset)
-    
-                _HandleComma_() {
-                    if flagComma
-                        str .= ',' controller.newline controller.indent
-                    else
-                        flagComma := 1
-                }
-            }
-            ;@endregion
-
-            ;@region Map
-            if params.ignoreKeys {
-                if IsObject(params.ignoreKeys) {
-                    if Type(params.ignoreKeys) != 'Array'
-                        throw TypeError('``ignoreKeys`` must be either a string or array.', -2, 'Type: ' Type(params.ignoreKeys))
-                } else
-                    params.ignoreKeys := [params.ignoreKeys]
-                for item in params.ignoreKeys {
-                    if Type(item) != 'String'
-                        throw TypeError('``ignoreKeys`` must be an array of strings.', -2, 'Type: ' Type(item))
-                }
-            }
-            CallMapEnum := _CallMapEnum_.Bind(params.ignoreKeys)
-            _CallMapEnum_(listIgnoreKeys, obj) {
-                local flagComma := 0, flagIgnore, keys := Map(), flagNlCharLimitMapItems
-                for key in obj {
-                    if IsObject(key) && Type(obj) != 'Gui'
-                        continue
-                    if listIgnoreKeys {
-                        flagIgnore := false
-                        for ignoreKey in listIgnoreKeys {
-                            if (SubStr(ignoreKey, 1, 2) == '$.' && controller.active.fullname '["' key '"]' == ignoreKey) || RegExMatch(key, ignoreKey) {
-                                flagIgnore := true
-                                break
-                            }
-                        }
-                        if flagIgnore
-                            continue
-                    }
-                    if Type(obj) == 'Gui' {
-                        try
-                            temp := key.name, val := key, key := temp
-                        catch Error as err {
-                            if ErrorAction
-                                keys.Set(key, ErrorAction(err))
-                            continue
-                        }
-                    } else {
-                        try
-                            val := obj[key]
-                        catch Error as err {
-                            if ErrorAction
-                                keys.Set(prop, ErrorAction(err))
-                            continue
-                        }
-                    }
-                    keys.Set(key, val)
-                }
-                if !keys.Capacity {
-                    str .= '[[]]'
-                    return
-                }
-                _Open_(controller.active.flagOwnProps||unset)
-                for key, val in keys {
-                    flagNlCharLimitMapItems := false
-                    if IsObject(val) {
-                        if result := _HandleObject_(val, key, keys) {
-                            if !IsNumber(result)
-                                val := result
-                        } else
-                            continue
-                    }
-                    if flagComma
-                        str .= ',' controller.newline controller.indent
-                    else
-                        flagComma := 1
-                    controller.currentIndent++
-                    if IsObject(val)
-                        controller.In(val, key)
-                    if !IsObject(val) && params.nlCharLimitMapItems && StrLen(key) + StrLen(val) < params.nlCharLimitMapItems
-                        flagNlCharLimitMapItems := true, str .= '['
-                    else
-                        str .= '[' controller.newline controller.indent
-                    _SetVal_(&key, params.quoteNumericKeys)
-                    if flagNlCharLimitMapItems
-                        str .= ','
-                    else
-                        str .= ',' controller.newline controller.indent
-                    if IsObject(val)
-                        Stringify(val, &str)
-                    else
-                        _SetVal_(&val)
-                    controller.currentIndent--
-                    if (IsObject(val) && params.nlDepthLimit && controller.depth == params.nlDepthLimit) || flagNlCharLimitMapItems
-                        str .= ']'
-                    else
-                        str .= controller.newline controller.indent ']'
-                }
-                _Close_(controller.active.flagOwnProps||unset)
-            }
-            ;@endregion
-
-
             ;@region OwnProps
-            if params.callOwnProps {
-                builtinsList := BuiltIns(params.includeBuiltinTypes||unset
-                , params.includeBuiltinProps||unset, params.ignoreBuiltinProps||unset, params.includeGui)
-                HandleBuiltins := _HandleBuiltinsList_
-                if params.ignoreProps {
-                    if IsObject(params.ignoreProps) {
-                        if Type(params.ignoreProps) != 'Array'
-                            throw TypeError('``ignoreProps`` must be either a string or array.', -1
-                            , 'Type: ' Type(params.ignoreProps))
-                    } else
-                        params.ignoreProps := [params.ignoreProps]
-                    for item in params.ignoreProps {
-                        if Type(item) != 'String'
-                            throw TypeError('``ignoreProps`` must be an array of strings.', -1, 'Type: ' Type(item))
-                    }
-                }
-                if Type(params.callOwnProps) == 'String' {
-                    if RegExMatch(params.callOwnProps, 'i)(^|(?<=\s))(?<type>StringifyAll)(?::(?<mode>\d+))?((?=\s)|$)', &match)
-                        stringifyAll := match['mode'] && match['mode'] == '1' ? 1 : 2
-                    else
-                        stringifyAll := false
-                    CallOwnProps := _ParseTypeOwnProps_.Bind(_CallOwnProps1_.Bind(params.ignoreProps)
-                    , _CallOwnProps2_.Bind(params.ignoreProps), stringifyAll)
-                } else {
-                    if params.callOwnProps = 1
-                        CallOwnProps := _CallOwnProps1_.Bind(params.ignoreProps)
-                    else if params.callOwnProps = 2
-                        CallOwnProps := _CallOwnProps2_.Bind(params.ignoreProps)
-                    else
-                        throw ValueError('``callOwnProps`` must be either a string, ``0``/``false``,'
-                        ' ``1``/``true``, or ``2``.', -1, 'Type: ' Type(params.callOwnProps))
-                }
+            if params.ignoreProps {
+                if IsObject(params.ignoreProps) {
+                    if not params.ignoreProps is Array
+                        throw TypeError('``ignoreProps`` must be either a string or array.', -2, 'Type: ' Type(params.ignoreProps))
+                } else
+                    params.ignoreProps := [params.ignoreProps]
+            } else
+                params.ignoreProps := []
+            if params.callOwnProps is String {
+                if RegExMatch(params.callOwnProps, 'i)(^|(?<=\s))(?<type>StringifyAll)(?::(?<mode>\d+))?((?=\s)|$)', &match)
+                    stringifyAll := match['mode'] && match['mode'] == '1' ? 1 : 2
+                else
+                    stringifyAll := false
+                CallOwnProps := _ParseTypeOwnProps.Bind(_CallOwnProps1.Bind(params.ignoreProps, '')
+                , _CallOwnProps2.Bind(params.ignoreProps), stringifyAll)
             } else {
-                if (t := Type(obj)) != 'Array' && t != 'Map'
-                    throw TypeError('You called ``Stringify`` with an object, but the option ``callOwnProps``'
-                    ' is currently ``false``, which means that ``OwnProps`` will not be iterated.'
-                    ' To Stringify an object, set ``OwnProps`` to ``1`` or ``2``.', -1)
-                HandleBuiltins := _HandleBuiltinsNoList_
+                if params.callOwnProps = 1 || (params.propsList && params.propsList.Has(Type(obj)))
+                    CallOwnProps := _CallOwnProps1.Bind(params.ignoreProps, '')
+                else if params.callOwnProps = 2
+                    CallOwnProps := _CallOwnProps2.Bind(params.ignoreProps)
+                else
+                    throw ValueError('``callOwnProps`` must be either a string, ``0``/``false``,'
+                    ' ``1``/``true``, or ``2``.', -1, 'Type: ' Type(params.callOwnProps))
             }
-            _ParseTypeOwnProps_(OP1, OP2, stringifyAll, obj) {
+
+            _SetValueInternal1(&prop, val, &flagEmpty, &SetValue) {
+                _Open('{'), flagEmpty := false
+                if controller.active.typecode != 'O'
+                    controller.active.flagOwnProps := true
+                SetValue := _SetValueInternal3, _SetValueInternal2(&prop, val)
+            }
+            _SetValueInternal2(&prop, val, *) {
+                str .= '"' prop '": '
+                if IsObject(val)
+                    controller.In(val, prop), Stringify(val, &str)
+                else
+                    _SetVal(&val)
+            }
+            _SetValueInternal3(&prop, val, *) {
+                str .= ',' controller.newline controller.indent '"' prop '": '
+                if IsObject(val)
+                    controller.In(val, prop), Stringify(val, &str)
+                else
+                    _SetVal(&val)
+            }
+            _ParseTypeOwnProps(OP1, OP2, stringifyAll) {
                 static param := params.callOwnProps
-                if RegExMatch(param,  'i)(^|(?<=\s))(?<type>' (Type(obj) == 'Class'
+                if RegExMatch(param,  'i)(^|(?<=\s))(?<type>' (obj is Class
                 ? obj.Prototype.__Class : obj.Base.__Class) ')(?::(?<mode>\d+))?((?=\s)|$)', &match)
                     match['mode'] && match['mode'] == '1' ? OP1() : OP2()
                 else if stringifyAll == 1
@@ -489,167 +405,242 @@ class Stringify {
                 else if stringifyAll == 2
                     OP2()
             }
-            _CallOwnProps1_(listIgnoreProps, obj, props?) {
-                local flagComma := 0, flagIgnore
-                if !IsSet(props)
-                    props := Map()
-                for prop in obj.OwnProps() {
-                    if prop == stringifyTag || prop == 'Prototype' || prop == 'Base'
-                        continue
-                    if listIgnoreProps {
+            _CallOwnProps1(listIgnoreProps, propsList, obj) {
+                local flagComma := 0, flagIgnore := false, flagEmpty := true, SetValue := _SetValueInternal1
+                for prop in obj.OwnProps()
+                    _Process(&prop)
+                if propsList {
+                    for prop in propsList
+                        _Process(&prop)
+                }
+
+                if flagEmpty
+                    str .= '{}'
+                else if controller.active.flagOwnProps
+                    str .= ',' controller.newline controller.indent '"' _GetItemPropName(controller.active.typecode) '": '
+                else
+                    _Close('}')
+
+                _Process(&prop) {
+                    if prop == 'prop1'
+                        sleep 1
+                    if obj.HasMethod(prop) || prop == stringifyTag
+                        return
+                    for ignoreProp in listIgnoreProps {
+                        if (SubStr(ignoreProp, 1, 2) == '$.' && controller.active.fullname '.' prop == ignoreProp)
+                        || RegExMatch(prop, ignoreProp) {
+                            flagIgnore := true
+                            break
+                        }
+                    }
+                    if flagIgnore {
                         flagIgnore := false
-                        for ignoreProp in listIgnoreProps {
-                            if (SubStr(ignoreProp, 1, 2) == '$.' && controller.active.fullname '.' prop == ignoreProp) || RegExMatch(prop, ignoreProp) {
+                        return
+                    }
+                    result := Stringify.TryProp(obj, &prop, &val)
+                    if result == 5 {
+                        if ErrorAction
+                            val := ErrorAction(val)
+                        else
+                            return
+                    }
+                    if IsObject(val) {
+                        for fn in HandleObjects {
+                            if result := fn(val)
+                                break
+                        }
+                        if result {
+                            switch result {
+                                case 1:
+                                    return
+                                case 2:
+                                    val := Stringify.GetTypeString(val)
+                                case 3:
+                                    val := '{' val.%stringifyTag% '}'
+                            }
+                        }
+                    }
+                    SetValue(&prop, val, &flagEmpty, &SetValue)
+                }
+            }
+            _CallOwnProps2(listIgnoreProps, obj) {
+                local flagIgnore := false, flagEmpty := true, SetValue := _SetValueInternal1
+                for prop, val in obj.OwnProps() {
+                    if prop == stringifyTag
+                        continue
+                    if prop == 'prop1'
+                        sleep 1
+                    for ignoreProp in listIgnoreProps {
+                        if (SubStr(ignoreProp, 1, 2) == '$.' && controller.active.fullname '.' prop == ignoreProp)
+                        || RegExMatch(prop, ignoreProp) {
+                            flagIgnore := true
+                            break
+                        }
+                    }
+                    if flagIgnore {
+                        flagIgnore := false
+                        continue
+                    }
+                    if IsObject(val) {
+                        for fn in HandleObjects {
+                            if result := fn(val)
+                                break
+                        }
+                        if result {
+                            switch result {
+                                case 1:
+                                    continue
+                                case 2:
+                                    val := Stringify.GetTypeString(val)
+                                case 3:
+                                    val := '{' val.%stringifyTag% '}'
+                            }
+                        }
+                    }
+                    SetValue(&prop, val, &flagEmpty, &SetValue)
+                }
+                if flagEmpty
+                    str .= '{}'
+                else if controller.active.flagOwnProps
+                    str .= ',' controller.newline controller.indent '"' _GetItemPropName(controller.active.typecode) '": '
+                else
+                    _Close('}')
+            }
+            ;@endregion
+
+            ;@region Array
+            CallArrayEnum(obj) {
+                local i := 0, HandleComma := _HandleComma1
+                if !obj.length {
+                    str .= '[]'
+                    return
+                }
+                _Open('[')
+                while ++i <= obj.length {
+                    if obj.Has(i) {
+                        try
+                            val := obj[i]
+                        catch Error as err {
+                            if ErrorAction
+                                val := ErrorAction(val)
+                            else
+                                continue
+                        }
+                        if IsObject(val) {
+                            for fn in HandleObjects {
+                                if result := fn(val)
+                                    break
+                            }
+                            if result {
+                                switch result {
+                                    case 1:
+                                        continue
+                                    case 2:
+                                        val := Stringify.GetTypeString(val)
+                                    case 3:
+                                        val := '{' val.%stringifyTag% '}'
+                                }
+                            }
+                        }
+                    } else
+                        val := params.unsetArrayItem
+                    if IsObject(val)
+                        HandleComma(), controller.In(val, i), Stringify(val, &str)
+                    else
+                        HandleComma(), _SetVal(&val)
+                }
+                _Close(']')
+
+                _HandleComma1() {
+                    HandleComma := _HandleComma2
+                }
+                _HandleComma2() {
+                    str .= ',' controller.newline controller.indent
+                }
+            }
+            ;@endregion
+
+            ;@region Map
+            if params.ignoreKeys {
+                if IsObject(params.ignoreKeys) {
+                    if not params.ignoreKeys is Array
+                        throw TypeError('``ignoreKeys`` must be either a string or array.', -2, 'Type: ' Type(params.ignoreKeys))
+                } else
+                    params.ignoreKeys := [params.ignoreKeys]
+            } else
+                params.ignoreKeys := []
+            CallMapEnum := _CallMapEnum.Bind(params.ignoreKeys)
+            _CallMapEnum(listIgnoreKeys, obj) {
+                local flagIgnore := false, flagNlCharLimitMapItems := false, HandleComma := _HandleComma1, flagEmpty := true
+                if !obj.Capacity {
+                    str .= '[[]]'
+                    return
+                }
+                for key, val in obj {
+                    if IsObject(key)
+                        continue
+                    if listIgnoreKeys {
+                        for ignoreKey in listIgnoreKeys {
+                            if (SubStr(ignoreKey, 1, 2) == '$.' && controller.active.fullname '["' key '"]' == ignoreKey) || RegExMatch(key, ignoreKey) {
                                 flagIgnore := true
                                 break
                             }
                         }
-                        if flagIgnore
-                            continue
-                    }
-                    try
-                        val := obj.%prop%
-                    catch Error as err {
-                        if ErrorAction
-                            props.Set(prop, ErrorAction(err))
-                        continue
-                    }
-                    props.Set(prop, val)
-                }
-                _IterateProps_(props, obj)
-            }
-            _CallOwnProps2_(listIgnoreProps, obj) {
-                local props := Map(), flagIgnore
-                try {
-                    for prop, val in obj.OwnProps() {
-                        if prop == stringifyTag || prop == 'Prototype'
-                            continue
-                        if listIgnoreProps {
+                        if flagIgnore {
                             flagIgnore := false
-                            for ignoreProp in listIgnoreProps {
-                                if (SubStr(ignoreProp, 1, 2) == '$.' && controller.active.fullname '.' prop == ignoreProp) || RegExMatch(prop, ignoreProp) {
-                                    flagIgnore := true
-                                    break
-                                }
-                            }
-                            if flagIgnore
-                                continue
-                        }
-                        props.Set(prop, val)
-                    }
-                } catch Error as err {
-                    if controller.active.typecode == 'O'
-                        props := Map(), _CallOwnProps1_(params.ignoreProps, obj, props)
-                    return
-                }
-                _IterateProps_(props, obj)
-            }
-            _IterateProps_(props, obj) {
-                local flagComma := 0
-                t := controller.active.type
-                if builtinsList.Has(t) {
-                    for prop in builtinsList.GetList(t) {
-                        try
-                            val := obj.%prop%
-                        catch
                             continue
-                        props.Set(prop, val)
+                        }
                     }
-                    if InStr(t, 'Gui') {
-                        name := 'pos'
-                        while props.Has(name)
-                            name := '_' name
-                        props.Set(name, Builtins.GetGuiPos(obj))
-                    }
-                }
-                if !props.Capacity {
-                    if controller.active.typecode == 'O'
-                        str .= '{}'
-                    return
-                }
-                if controller.active.typecode != 'O'
-                    controller.active.flagOwnProps := controller.active.typecode, controller.active.typecode := 'O'
-                _Open_()
-                for prop, val in props {
                     if IsObject(val) {
-                        if result := _HandleObject_(val, prop) {
-                            if !IsNumber(result)
-                                val := result
-                        } else
-                            continue
-                    }
-                    if prop == 'prop1'
-                        sleep 1
-                    if flagComma
-                        str .= ',' controller.newline controller.indent
-                    else
-                        flagComma := 1
-                    str .= '"' prop '": '
-                    if IsObject(val)
-                        controller.In(val, prop), Stringify(val, &str)
-                    else
-                        _SetVal_(&val)
-                }
-                if controller.active.flagOwnProps {
-                    str .= ',' controller.newline controller.indent '"' _GetItemPropName_(controller.active.flagOwnProps) '": '
-                } else
-                    _Close_()
-            }
-            ;@endregion
-
-            ;@region HandleObjects
-            _HandleObject_(val, name?, list?) {
-                local flagPlaceholder := false
-                for fn in HandleObjects {
-                    if flagPlaceholder := fn(val)
-                        break
-                }
-                if flagPlaceholder && !params.printPlaceholders
-                    return
-                if RegExMatch(Type(val), 'Func|BoundFunc|Closure|Enumerator') {
-                    if !params.printFuncPlaceholders
-                        return
-                    flagPlaceholder := 1
-                }
-                if flagPlaceholder == 1
-                    return _GetTypeString_(val)
-                else if flagPlaceholder == 2
-                    return '{' val.%stringifyTag% '}'
-                else
-                    return 1
-            }
-            HandleObjects := [_HandleComValue_, HandleBuiltins]
-            _HandleComValue_(val) => Type(val) == 'ComValue'
-            _HandleBuiltinsList_(val) {
-                t := Type(val)
-                if builtinsList.active {
-                    if Builtins.Has(t) {
-                        if !builtinsList.Has(t) {
-                            if !RegExMatch(t, 'Map|Array|Class|Object')
-                                return 1
+                        for fn in HandleObjects {
+                            if result := fn(val)
+                                break
+                        }
+                        if result {
+                            switch result {
+                                case 1:
+                                    continue
+                                case 2:
+                                    val := Stringify.GetTypeString(val)
+                                case 3:
+                                    val := '{' val.%stringifyTag% '}'
+                            }
                         }
                     }
+                    HandleComma(), controller.currentIndent++
+                    if IsObject(val)
+                        controller.In(val, key)
+                    if !IsObject(val) && params.nlCharLimitMapItems && StrLen(key) + StrLen(val) < params.nlCharLimitMapItems
+                        flagNlCharLimitMapItems := true, str .= '['
+                    else
+                        str .= '[' controller.newline controller.indent, flagNlCharLimitMapItems := false
+                    _SetVal(&key, params.quoteNumericKeys)
+                    if flagNlCharLimitMapItems
+                        str .= ','
+                    else
+                        str .= ',' controller.newline controller.indent
+                    if IsObject(val)
+                        Stringify(val, &str)
+                    else
+                        _SetVal(&val)
+                    controller.currentIndent--
+                    if (IsObject(val) && params.nlDepthLimit && controller.depth == params.nlDepthLimit) || flagNlCharLimitMapItems
+                        str .= ']'
+                    else
+                        str .= controller.newline controller.indent ']'
+                }
+                if flagEmpty
+                    str .= '[[]]'
+                else
+                    _Close(']')
+
+                _HandleComma1() {
+                    _Open('['), HandleComma := _HandleComma2, flagEmpty := false
+                }
+                _HandleComma2() {
+                    str .= ',' controller.newline controller.indent
                 }
             }
-            _HandleBuiltinsNoList_(val) => Builtins.Has(Type(val))
-            if params.recursePrevention {
-                if params.recursePrevention = 2
-                    HandleObjects.Push(_RecursePrevention2_)
-                else if IsNumber(params.recursePrevention)
-                    HandleObjects.Push(_RecursePrevention1_)
-                else
-                    throw TypeError('``recursePrevention`` must be a number or ``true`` or ``false``.'
-                    , -2, 'Type: ' Type(params.recursePrevention))
-                controller.InSequence.Push(_SetTag_)
-                obj.DefineProp(stringifyTag, {Value: '$'})
-            }
-            _RecursePrevention2_(val) => val.HasOwnProp(stringifyTag) ? 2 : 0
-            _RecursePrevention1_(val) => val.HasOwnProp(stringifyTag) && InStr(controller.active.path
-            , val.%stringifyTag%) ? 2 : 0
-            _SetTag_(val, *) => controller.tags.Set(val.%stringifyTag% := controller.active.fullname, val)
-            if params.maxDepth
-                HandleObjects.Push(_HandleMaxDepth_)
-            _HandleMaxDepth_(*) => controller.depth == params.maxDepth
             ;@endregion
 
         }
@@ -657,17 +648,27 @@ class Stringify {
         
 
         ;@region Core
-        if params.callOwnProps
-            CallOwnProps(obj)
         switch Type(obj) {
             case 'Array':
+                if params.callOwnProps && ObjOwnPropCount(obj) > 1
+                    CallOwnProps(obj)
                 CallArrayEnum(obj)
-            case 'Map', 'Gui':
+            case 'Map':
+                if params.callOwnProps && ObjOwnPropCount(obj) > 1
+                    CallOwnProps(obj)
                 CallMapEnum(obj)
+            default:
+                if params.callOwnProps {
+                    if params.propsList && params.propsList.Has(Type(obj))
+                        _CallOwnProps1(params.ignoreProps, params.propsList[Type(obj)], obj)
+                    else
+                        CallOwnProps(obj)
+                }
+
         }
         
         if controller.active.flagOwnProps
-            _Close_()
+            _CloseFromFlagOwnProps()
         if controller.Out(obj) {
             controller := unset
             A_Clipboard := str
@@ -679,84 +680,30 @@ class Stringify {
 
 
         ;@region Setters
-        _GetTypeString_(val) {
-            return '{' _Type_() '}'
-
-            _Type_() {
-                if Type(val) == 'Class'
-                    return 'Class:' val.prototype.__Class
-                if Type(val) == 'ComValue'
-                    return _ComObjType_()
-                return Type(val)
-                ; https://www.autohotkey.com/docs/v2/lib/Type.htm
-                _ComObjType_() {
-                    if ComObjType(val) & 0x2000 ; VT_ARRAY
-                        return 'ComObjArray' ; ComObjArray.Prototype.__Class
-                    if ComObjType(val) & 0x4000 ; VT_BYREF
-                        return 'ComValueRef' ; ComValueRef.Prototype.__Class
-                    if (ComObjType(val) = 9 || ComObjType(val) = 13) ; VT_DISPATCH || VT_UNKNOWN
-                        && ComObjValue(val) != 0
-                    {
-                        if (comClass := ComObjType(val, 'Class')) != ''
-                            return comClass
-                        if ComObjType(val) = 9 ; VT_DISPATCH
-                            return 'ComObject' ; ComObject.Prototype.__Class
-                    }
-                    return 'ComValue' ; ComValue.Prototype.__Class
-                }
-            }
-        }
-        _Open_(typecode?) {
-            local temp
-            if IsSet(typecode)
-                temp := controller.active.typecode, controller.active.typecode := typecode
+        _Open(bracket) {
             controller.currentIndent++, controller.ToggleSingleLineOn(StrLen(str))
-            str .= _GetOpenBracket_(controller.active.typecode) controller.newline controller.indent
-            if IsSet(typecode)
-                controller.active.typecode := temp
+            str .= bracket controller.newline controller.indent
         }
-        _Close_(typecode?) {
-            local temp
-            if IsSet(typecode)
-                temp := controller.active.typecode, controller.active.typecode := typecode
+        _Close(bracket) {
             controller.currentIndent--
-            str .= controller.newline controller.indent _GetCloseBracket_(controller.active.typecode)
-            _SetSingleLine_(controller.ToggleSingleLineOff(StrLen(str)))
-            if IsSet(typecode)
-                controller.active.typecode := temp
+            str .= controller.newline controller.indent bracket
+            _SetSingleLine(controller.ToggleSingleLineOff(StrLen(str)))
         }
-        _GetOpenBracket_(typecode) {
+        _CloseFromFlagOwnProps() {
+            controller.currentIndent--
+            result := controller.ToggleSingleLineOff(StrLen(str))
+            _SetSingleLine(result)
+            str .= controller.newline controller.indent '}'
+        }
+        _GetItemPropName(typecode) {
             switch typecode {
                 case 'A':
-                    return '['
+                    return params.itemContainerArray
                 case 'M':
-                    return '['
-                default:
-                    return '{'
+                    return params.itemContainerMap
             }
         }
-        _GetCloseBracket_(typecode) {
-            switch typecode {
-                case 'A':
-                    return ']'
-                case 'M':
-                    return ']'
-                default:
-                    return '}'
-            }
-        }
-        _GetItemPropName_(typecode) {
-            switch typecode {
-                case 'A':
-                    itemPropName := params.itemContainerArray
-                case 'M':
-                    itemPropName := params.itemContainerMap
-            }
-            while obj.HasOwnProp(itemPropName)
-                itemPropName := itemPropName '_'
-            return itemPropName
-        }
-        _SetVal_(&val, quoteNumbers := false) {
+        _SetVal(&val, quoteNumbers := false) {
             local pos, match
             if val is Number {
                 str .= quoteNumbers ? '"' val '"' : val
@@ -773,9 +720,7 @@ class Stringify {
                 val := StrReplace(val, match[0], Format("\u{:04X}", Ord(match[0])))
             str .= '"' val '"'
         }
-        _SetSingleLine_(result) {
-            A_Clipboard := str
-            sleep 1
+        _SetSingleLine(result) {
             if result && result.result
                 str := RegExReplace(str, '\R *', '',,,result.pos||1)
         }
@@ -813,24 +758,27 @@ class Stringify {
                 this.DefineProp('ToggleSingleLineOn', {Call: (*)=>''})
                 this.DefineProp('ToggleSingleLineOff', {Call: (*)=>''})
             } else {
+                if params.recursePrevention
+                    this.InSequence.Push(_SetTag.Bind(stringifyTag)), obj.DefineProp(stringifyTag, {Value: '$'})
                 if params.nlDepthLimit
-                    this.InSequence.Push(_HandleNlDepthLimit_), this.outSequence.Push(_HandleNlDepthLimitOut_)
+                    this.InSequence.Push(_HandleNlDepthLimit), this.outSequence.Push(_HandleNlDepthLimitOut)
                 this.indentStr.Push(params.indent), this.lenContainer.defaut := this.lenEnumObj.default := 0
                 if params.nlCharLimitAll
                     params.nlCharLimitArray := params.nlCharLimitMap := params.nlCharLimitObj := params.nlCharLimitAll
             }
-            _HandleNlDepthLimit_(*) {
+            _SetTag(stringifyTag, val, *) => this.tags.Set(val.%stringifyTag% := this.active.fullname, val)
+            _HandleNlDepthLimit(*) {
                 if this.depth == this.params.nlDepthLimit
                     this.singleLineActive++
             }
-            _HandleNlDepthLimitOut_(*) {
+            _HandleNlDepthLimitOut(*) {
                 if this.depth == this.params.nlDepthLimit
                     this.singleLineActive--
             }
             if params.printTypeTag
-                this.InSequence.Push(_SetTypeTag_), _SetTypeTag_(obj)
-            _SetTypeTag_(obj, *) => obj.DefineProp(this.stringifyTypeTag
-            , {Value: Type(obj) == 'Class' ? 'Class:' obj.Prototype.__Class : 'Instance:' obj.Base.__Class})
+                this.InSequence.Push(_SetTypeTag), _SetTypeTag(obj)
+            _SetTypeTag(obj, *) => obj.DefineProp(this.stringifyTypeTag
+            , {Value: obj is Class ? 'Class:' obj.Prototype.__Class : 'Instance:' obj.Base.__Class})
         }
         
         In(obj, name) {
@@ -840,7 +788,7 @@ class Stringify {
             switch t {
                 case 'Array':
                     this.active.typecode := 'A'
-                case 'Map', 'Gui':
+                case 'Map':
                     this.active.typecode := 'M'
                 default:
                     this.active.typecode := 'O'
@@ -899,13 +847,13 @@ class Stringify {
             params := this.params
             switch this.active.typecode {
                 case 'O':
-                    return _Toggle_(params.nlCharLimitObj, params.singleLineObj)
+                    return _Toggle(params.nlCharLimitObj, params.singleLineObj)
                 case 'A':
-                    return _Toggle_(params.nlCharLimitArray, params.singleLineArray)
+                    return _Toggle(params.nlCharLimitArray, params.singleLineArray)
                 case 'M':
-                    return _Toggle_(params.nlCharLimitMap, params.singleLineMap)
+                    return _Toggle(params.nlCharLimitMap, params.singleLineMap)
             }
-            _Toggle_(charLimit, flagSingleLine) {
+            _Toggle(charLimit, flagSingleLine) {
                 if flagSingleLine
                     this.singleLineActive++
                 else if charLimit {
@@ -918,13 +866,13 @@ class Stringify {
             params := this.params
             switch this.active.typecode {
                 case 'O':
-                    return _Toggle_(params.singleLineObj)
+                    return _Toggle(params.singleLineObj)
                 case 'A':
-                    return _Toggle_(params.singleLineArray)
+                    return _Toggle(params.singleLineArray)
                 case 'M':
-                    return _Toggle_(params.singleLineMap)
+                    return _Toggle(params.singleLineMap)
             }
-            _Toggle_(flagSingleLine) {
+            _Toggle(flagSingleLine) {
                 if flagSingleLine
                     this.singleLineActive--
                 else if (container := this.lenContainer.Has(this.active.fullname) ? this.lenContainer.Get(this.active.fullname) : '') {
@@ -935,12 +883,113 @@ class Stringify {
                 }
             }
         }
-    
     }
     ;@endregion
+
+    static GetFuncNames(objects, depth := 0, propName := 'FuncNames') {
+        if not objects is Array
+            objects := [objects]
+        i := -1, _Recurse(objects, depth)
+        _Recurse(objects, depth) {
+            i++
+            for obj in objects {
+                obj.DefineProp(propName, {Value: ''})
+                for prop in obj.OwnProps() {
+                    if RegExMatch(Type(obj.%prop%), 'Func|BoundFunc|Closure|Enumerator')
+                        obj.%propName% .= prop ' '
+                    else if IsObject(obj.%prop%) && depth && i < depth
+                        _Recurse([obj.%prop%], depth)
+                }
+            }
+            i--, obj.%propName% := Trim(obj.%propName%, ' ')
+        }
+    }
+    static GetTypeString(val) {
+        return '{' _Type() '}'
+        _Type() {
+            if val is Class
+                return 'Class:' val.prototype.__Class
+            if val is ComValue
+                return _ComObjType()
+            return Type(val)
+            ; https://www.autohotkey.com/docs/v2/lib/Type.htm
+            _ComObjType() {
+                if ComObjType(val) & 0x2000 ; VT_ARRAY
+                    return 'ComObjArray' ; ComObjArray.Prototype.__Class
+                if ComObjType(val) & 0x4000 ; VT_BYREF
+                    return 'ComValueRef' ; ComValueRef.Prototype.__Class
+                if (ComObjType(val) = 9 || ComObjType(val) = 13) ; VT_DISPATCH || VT_UNKNOWN
+                    && ComObjValue(val) != 0
+                {
+                    if (comClass := ComObjType(val, 'Class')) != ''
+                        return comClass
+                    if ComObjType(val) = 9 ; VT_DISPATCH
+                        return 'ComObject' ; ComObject.Prototype.__Class
+                }
+                return 'ComValue' ; ComValue.Prototype.__Class
+            }
+        }
+    }
+
+    ; return values: 0 - no change; 5 - error; 6 - value is an object
+    static TryProp(obj, &prop, &val) {
+        try
+            val := obj.%prop%, result := 0
+        catch {
+            val := obj.GetOwnPropDesc(prop)
+            if val.HasOwnProp('value')
+                val := val.value, result := 0
+            else {
+                if val.HasMethod('Get') && val.Get.MinParams <= 1 {
+                    try
+                        val := val.Get(), result := 0
+                    catch Error as err
+                        val := err, result := 5
+                } else
+                    val := MethodError('Property ``' prop '`` does not have an active ``Get`` method.'), result := 5
+            }
+        }
+        if !result && IsObject(val)
+            result := 6
+        return result
+    }
+    static __InheritedProps := Map()
+    static GetIf(t, &val) {
+        if Stringify.__InheritedProps.Has(t) {
+            val := Stringify.__InheritedProps.Get(t)
+            return 1
+        }
+    }
+    static GetInheritedPropNames(obj, depth?) {
+        if Stringify.__InheritedProps.GetIf(t := Type(obj), &val)
+            return val.Clone()
+        b := t == 'Class' ? obj.Prototype : obj.Base
+        Stringify.__InheritedProps.Set(t, props := Map())
+        
+        Loop {
+            if b is Any || A_Index >= depth + 1
+                break
+            for prop in b.OwnProps() {
+                if !b.HasMethod(prop) && prop != '__Class'
+                    props.Push(prop)
+            }
+            b := %b.Base.__Class%.Prototype
+        }
+        return props
+    }
+    static GetControlsList(guiObj) {
+        guiObj.GetPos(&x, &y, &w, &h)
+        guiObj.pos := 'x:' x ' y:' y ' w:' w ' h:' h
+        if guiObj.HasOwnProp('Ctrls')
+            throw Error('The object already has a property called ``__Ctrls``.', -1)
+        guiObj.DefineProp('__Ctrls', {Value: container := Map()})
+        for ctrl in guiObj {
+            container.Set(ctrl.Name||ctrl.hwnd, ctrl), ctrl.GetPos(&x, &y, &w, &h)
+            ctrl.pos := 'x:' x ' y:' y ' w:' w ' h:' h
+        }
+    }
 }
     ;@endregion
-
 
 class BuiltIns {
 
@@ -952,13 +1001,61 @@ class BuiltIns {
         ctrl.GetPos(&x, &y, &w, &h)
         return Format('x:{} y:{} w:{} h:{}', x, y, w, h)
     }
+    /** This outputs a semi-structured list of all viable inherited properties */
+    static OutputEntireList(pathOut?, &str?) {
+        result := Map(), str := ''
+        for key, val in Builtins.__Item {
+            result.Set(key, container := Map())
+            classObj := val.ClassObj
+            str .= '`n' classObj.Prototype.__Class '`n'
+            Loop 2 {
+                if classObj.Prototype.__Class == 'Object'
+                    break
+                str .= '`t`t' classObj.Prototype.__Class '`n'
+                container.Set('props', props := [], 'methods', methods := [], 'error', errors := [])
+                for prop in classObj.Prototype.OwnProps() {
+                    if prop == '__Class'
+                        continue
+                    try {
+                        if RegExMatch(t := Type(classObj.Prototype.%prop%), 'Func|BoundFunc|Closure|Enumerator')
+                            methods.Push(prop)
+                        else
+                            props.Push(prop)
+                    } catch
+                        errors.Push(prop)
+                }
+                classObj := classObj.Base
+                if errors.length {
+                    str .= '`t`t`t`t----Errors----`n'
+                    for item in errors
+                        str .= '`t`t`t`t' item '`n'
+                }
+                if props.length {
+                    str .= '`t`t`t`t----Props----`n'
+                    for item in props
+                        str .= '`t`t`t`t' item '`n'
+                }
+            }
+            for key, val in container {
+                if !val.length
+                    container.Delete(key)
+            }
+        }
+        Stringify(result, &str, {printTypeTag: false, nlDepthLimit: 4})
+        if IsSet(pathOut) {
+            f := FileOpen(pathOut, 'a')
+            f.Write(str '`n`n')
+            f.Close()
+        } else if A_LineFile == A_ScriptFullPath
+            A_Clipboard := str, msgbox('done')
+    }
     ; Any, ComValue, Number, Integer, Float, and String are excluded from the list.
     ; `includeAll` is assigned the value from `includeBuiltinTypes`, which indicates the depth used.
     static __New() {
         this.__Item := Map()
         this.__Item.CaseSense := false
         
-        this.__Item.Set('Object', { name: 'Object' }
+        this.__Item.Set('Object', { ClassObj: Object, name: 'Object' }
             ,  'Array', { ClassObj: Array, name: 'Array' }
             ,  'Buffer', { ClassObj: Buffer, name: 'Buffer' }
             ,  'ClipboardAll', { ClassObj: ClipboardAll, name: 'ClipboardAll' }
@@ -1010,100 +1107,38 @@ class BuiltIns {
             ,  'RegExMatchInfo', { ClassObj: RegExMatchInfo, name: 'RegExMatchInfo' }
         )
     }
-    
-    Has(t) => this.lists.Has(t) || (this.includeAll && Builtins.Has(t)) || (this.includeGui && InStr(t, 'Gui'))
-    Get(t) => this.lists.Get(t)
-    Set(t, value) => this.lists.Set(t, value)
-    Delete(t) => this.lists.Delete(t)
-    __Item[t] {
-        Get => this.Get(t)
-        Set => this.Set(t, value)
-    }
 
-    includeAll := false, active := false, includeGui := false
-    __New(includeBuiltinTypes?, includeProps?, ignoreProps?, includeGui := false) {
-        validation := 0, this.includeGui := true
-        this.lists := Map(), this.lists.casesense := false
-        if IsSet(includeBuiltinTypes) {
-            if Type(includeBuiltinTypes) == 'String'
-                this.SetListTypes(includeBuiltinTypes)
-            else
-                this.includeAll := includeBuiltinTypes
-            validation++
-        }
-        if IsSet(includeProps)
-            this.SetListInludeProps(includeProps), validation++
-        if IsSet(ignoreProps)
-            this.SetlistIgnoreProps(ignoreProps), validation++
-        if validation > 1
-            throw ValueError('Only one of the parameters ``includeBuiltinTypes``, ``includeProps``, or'
-            ' ``ignoreProps`` can be used at a time.', -2)
-        if validation == 1
-            this.active := true
-    }
+    static props := Map(
+      'Array', ['__Item', 'Capacity', 'Length']
+    , 'Buffer', ['Ptr', 'Size']
+    , 'ArrayNoItem', ['Capacity', 'Length']
+    , 'Error', ['Message', 'Name', 'Extra', 'File', 'Line', 'Stack']
+    , 'File', ['AtEOF', 'Encoding', 'Handle', 'Length', 'Pos']
+    , 'Gui', ['__Item', 'BackColor', 'FocusedCtrl', 'Hwnd', 'MarginX', 'MarginY', 'MenuBar', 'Name', 'Title']
+    , 'GuiNoItem', ['BackColor', 'FocusedCtrl', 'Hwnd', 'MarginX', 'MarginY', 'MenuBar', 'Name', 'Title']
+    , 'Gui.Control', ['ClassNN', 'Enabled', 'Focused', 'Hwnd', 'Name', 'Text', 'Type', 'Value', 'Visible']
+    , 'InputHook', ['BackspaceIsUndo', 'CaseSensitive', 'EndKey', 'EndMods', 'EndReason', 'FindAnywhere'
+      , 'InProgress', 'Input', 'Match', 'MinSendLevel', 'NotifyNonText', 'OnChar', 'OnEnd', 'OnKeyDown'
+      , 'OnKeyUp', 'Timeout', 'VisibleNonText', 'VisibleText']
+    , 'Map', ['__Item', 'Capacity', 'CaseSense', 'Count']
+    , 'MapNoItem', ['Capacity', 'CaseSense', 'Count']
+    , 'Menu', ['ClickCount', 'Default', 'Handle']
+    , 'MenuBar', ['ClickCount', 'Default', 'Handle']
+    , 'RegExMatchInfo', ['__Item', 'Count', 'Len', 'Mark', 'Name', 'Pos']
+    , 'RegExMatchInfoNoItem', ['Count', 'Len', 'Mark', 'Name', 'Pos']
+    )
 
-    SetListTypes(builtinTypes) {
-        for item in StrSplit(RegExReplace(builtinTypes, '\s+', ' '), ' ') {
-            if !RegExMatch(item, '^(?<type>[\w.]+)(?::(?<depth>.+))?$', &match)
-                throw ValueError('Invalid format for ``includeBuiltinTypes``. The format should be'
-                ' ``ObjType:depth', -2, 'Value: ' item)
-            if !Builtins.Has(match['type'])
-                throw ValueError('Invalid object type in ``includeBuiltinTypes``.', -2, 'Value: '
-                match['type'] '`tIn context: ' item)
-            this.lists.Set(match['type'], propList := [])
-            classObj := Builtins[match['type']].ClassObj
-            Loop (match['depth'] ? Number(match['depth']) + 1 : 3) {
-                if classObj.Prototype.__Class == 'Any'
-                    break
-                for prop in classObj.Prototype.OwnProps() {
-                    if prop != '__Item'
-                        propList.Push(prop)
-                }
-                classObj := classObj.Base
-            }
-        }
-    }
-
-    SetListInludeProps(includeProps) {
-        if InStr(includeProps, '__Item')
-            throw ValueError('The property ``__Item`` cannot be used as an option for ``includeBuiltinProps``.', -2)
-        for item in StrSplit(RegExReplace(includeProps, '\s+', ' '), ' ') {
-            if !RegExMatch(item, '^(?<type>[\w.]+):(?<list>[^:]+)', &match)
-                throw ValueError('Invalid format for ``includeBuiltinProps``. The format should be'
-                ' ``ObjType:List|Of|Prop|Names', -2, 'Value: ' item)
-            if !Builtins.Has(match['type'])
-                throw ValueError('Invalid object type in ``includeBuiltinProps``.', -2, 'Value: '
-                match['type'] '`tIn context: ' item)
-            this.lists.Set(match['type'], StrSplit(match['list'], '|'))
-        }
-    }
-
-    SetlistIgnoreProps(ignoreProps) {
-        for item in StrSplit(RegExReplace(ignoreProps, '\s+', ' '), ' ') {
-            if !RegExMatch(item, '^(?<type>[\w.]+):(?<list>[^:]+?)(?::(?<depth>.+))?$', &match)
-                throw ValueError('Invalid format for ``ignoreBuiltinProps``. The format should be'
-                ' ``ObjType:List|Of|Prop|Names:depth', -2, 'Value: ' item)
-            if !Builtins.Has(match['type'])
-                throw ValueError('Invalid object type in ``ignoreBuiltinProps``.', -2, 'Value: '
-                match['type'] '`tIn context: ' item)
-            this.lists.Set(match['type'], propList := [])
-            classObj := Builtins[match['type']].ClassObj
-            Loop (match['depth'] ? Number(match['depth']) + 1 : 3) {
-                if classObj.Prototype.__Class == 'Any'
-                    break
-                for prop in classObj.Prototype.OwnProps() {
-                    if !RegExMatch(prop, match['list']) && prop != '__Item'
-                        propList.Push(prop)
-                }
-                classObj := classObj.Base
-            }
-        }
-    }
-
-    GetList(t) {
-        if !this.lists.Has(t) && (this.includeAll || (this.includeGui && InStr(t, 'Gui')))
-            this.SetListTypes(t ':' this.includeAll)
-        if this.lists.Has(t)
-            return this.lists.Get(t)
-    }
+    static guiControls := Map(
+          'Gui', Builtins.props['GuiNoItem']
+        , 'Gui.ActiveX', Builtins.props['Gui.Control'], 'Gui.Button', Builtins.props['Gui.Control']
+        , 'Gui.CheckBox', Builtins.props['Gui.Control'], 'Gui.Custom', Builtins.props['Gui.Control']
+        , 'Gui.DateTime', Builtins.props['Gui.Control'], 'Gui.Edit', Builtins.props['Gui.Control']
+        , 'Gui.GroupBox', Builtins.props['Gui.Control'], 'Gui.Hotkey', Builtins.props['Gui.Control']
+        , 'Gui.Link', Builtins.props['Gui.Control'], 'Gui.ComboBox', Builtins.props['Gui.Control']
+        , 'Gui.ListView', Builtins.props['Gui.Control'], 'Gui.MonthCal', Builtins.props['Gui.Control']
+        , 'Gui.Pic', Builtins.props['Gui.Control'], 'Gui.Progress', Builtins.props['Gui.Control']
+        , 'Gui.Radio', Builtins.props['Gui.Control'], 'Gui.Slider', Builtins.props['Gui.Control']
+        , 'Gui.StatusBar', Builtins.props['Gui.Control'], 'Gui.Text', Builtins.props['Gui.Control']
+        , 'Gui.TreeView', Builtins.props['Gui.Control'], 'Gui.UpDown', Builtins.props['Gui.Control']
+    )
 }
