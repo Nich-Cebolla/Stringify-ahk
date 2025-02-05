@@ -1,7 +1,3 @@
-class counter {
-    static a := 0
-    static b := 0
-}
 
 /**
  * @description - Parses a JSON string. If the JSON was created with the associated OBJECT_STRINGIFY
