@@ -1,5 +1,4 @@
 
-#Include ..\Stringify\dev\Parse.ahk
 
 Object.Prototype.DefineProp('Stringify', { Call: OBJECT_STRINGIFY })
 OBJECT_STRINGIFY(Self, &Str, PrintTypeTags := false, Indent := '`s`s`s`s', Newline := '`r`n'
