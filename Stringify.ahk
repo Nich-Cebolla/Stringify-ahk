@@ -6,6 +6,7 @@
 */
 
 #Include <Inheritance_V1.0.0>
+; https://github.com/Nich-Cebolla/AutoHotkey-LibV2/blob/main/Inheritance.ahk
 
 class Stringify {
 
