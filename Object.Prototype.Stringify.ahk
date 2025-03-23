@@ -1,4 +1,9 @@
-
+/*
+    Github: https://github.com/Nich-Cebolla/Stringify-ahk/blob/main/Object.Prototype.Stringify.ahk
+    Author: Nich-Cebolla
+    Version: 1.0.0
+    License: MIT
+*/
 
 Object.Prototype.DefineProp('Stringify', { Call: OBJECT_STRINGIFY })
 OBJECT_STRINGIFY(Self, &Str, PrintTypeTags := false, Indent := '`s`s`s`s', Newline := '`r`n'
