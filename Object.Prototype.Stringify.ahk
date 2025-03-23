@@ -5,8 +5,9 @@
     License: MIT
 */
 
+
 Object.Prototype.DefineProp('Stringify', { Call: OBJECT_STRINGIFY })
-OBJECT_STRINGIFY(Self, &Str, PrintTypeTags := false, Indent := '`s`s`s`s', Newline := '`r`n'
+OBJECT_STRINGIFY(Self, &Str?, PrintTypeTags := false, Indent := '`s`s`s`s', Newline := '`r`n'
 , MaxDepth := -1, IgnoreProps := 'i)^(?:Base|Prototype)$', DynamicPropAction := 0) {
     local PrepareNext
     if Object.Prototype.HasOwnProp('__StringifyController') {
@@ -81,7 +82,7 @@ OBJECT_STRINGIFY(Self, &Str, PrintTypeTags := false, Indent := '`s`s`s`s', Newli
 }
 
 Array.Prototype.DefineProp('Stringify', { Call: ARRAY_STRINGIFY })
-ARRAY_STRINGIFY(Self, &Str, PrintTypeTags := false, Indent := '`s`s`s`s', Newline := '`r`n'
+ARRAY_STRINGIFY(Self, &Str?, PrintTypeTags := false, Indent := '`s`s`s`s', Newline := '`r`n'
 , MaxDepth := -1, IgnoreProps := 'i)^(?:Base|Prototype)$', DynamicPropAction := 0) {
     local PrepareNext
     if Object.Prototype.HasOwnProp('__StringifyController') {
@@ -178,7 +179,7 @@ ARRAY_STRINGIFY(Self, &Str, PrintTypeTags := false, Indent := '`s`s`s`s', Newlin
         } else
             Strfy_GetVal(&Val, &Str)
     }
-    
+
     _PrepareNext(&Str) {
         Str .= Newline _Indent.GetA(Controller.IndentLevel)
         PrepareNext := _PrepareNextWithComma
@@ -189,7 +190,7 @@ ARRAY_STRINGIFY(Self, &Str, PrintTypeTags := false, Indent := '`s`s`s`s', Newlin
 }
 
 Map.Prototype.DefineProp('Stringify', { Call: MAP_STRINGIFY })
-MAP_STRINGIFY(Self, &Str, PrintTypeTags := false, Indent := '`s`s`s`s', Newline := '`r`n'
+MAP_STRINGIFY(Self, &Str?, PrintTypeTags := false, Indent := '`s`s`s`s', Newline := '`r`n'
 , MaxDepth := -1, IgnoreProps := 'i)^(?:Base|Prototype)$', DynamicPropAction := 0) {
     local PrepareNext, PrepareNextMap
     if Object.Prototype.HasOwnProp('__StringifyController') {
@@ -290,7 +291,7 @@ MAP_STRINGIFY(Self, &Str, PrintTypeTags := false, Indent := '`s`s`s`s', Newline 
         } else
             Strfy_GetVal(&Val, &Str)
     }
-    
+
     _PrepareNext(&Str) {
         Str .= Newline _Indent.GetA(Controller.IndentLevel)
         PrepareNext := _PrepareNextWithComma
