@@ -1,11 +1,11 @@
 /*
    Github: https://github.com/Nich-Cebolla/Stringify-ahk
     Author: Nich-Cebolla
-    Version: 1.0.0
+    Version: 1.0.1
     License: MIT
 */
 
-#Include <Inheritance_V1.0.0>
+; #Include <Inheritance_V1.0.0>
 ; https://github.com/Nich-Cebolla/AutoHotkey-LibV2/blob/main/Inheritance.ahk
 
 class Stringify {
@@ -46,7 +46,7 @@ class Stringify {
         static unsetArrayItem := '""'
 
         ; Misc options
-        static returnString := false
+        static returnString := true
         static deleteTags := true
         static throwErrors := true
 
@@ -81,79 +81,7 @@ class Stringify {
      * be slightly faster than as a returned string. For short JSON strings, the difference is likely
      * negligible.
      * @param {Object} [params] - An object containing options for the stringification process.
-     * @property {String} [escapeNL] - The literal string of characters to replace matches with `\R`.
-     * @property {Boolean|String} [printErrors] - When true, if an error occurs when attempting to
-     * access a property or value, the error text is printed next to the placeholder. You can also assign
-     * this a string value, where the string indicates which error property to include in the printed
-     * text. Use only the first letter of the property name. The available properties are: `Message`,
-     * `What`, `Extra`, `File`, `Line`, and `Stack`. An additional option is `T`, which will print
-     * the type of error as `Type(err)`. A separator character is optional. For example, writing
-     * `ML` will direct `Stringify` to only print the `Message` and `Line` property. Information is
-     * printed in the order it is listed in the option's value.
-     * @property {Array|String} [ignoreProps] - A string or array of strings containing property
-     * names / object paths that will not be stringified. This is only in effect when iterating an
-     * objects' `OwnProps()` method. To unambiguously exclude a property from a specific object,
-     * write the string using the full path beginning with "$.". For example, if I have a nested object
-     * on a property called "HairColor", and I want to exclude that one specifically for my "Brother"
-     * but not my "Sister", I would write "$.MyFamily.Brother.HairColor". If I want to exclude all
-     * properties named "HairColor", I just write "HairColor". The "$." represents the root object,
-     * and so in this example, "MyFamily" is a property of the root object, not the root object itself.
-     * Note that map keys are represented using map/array notation, so when writing the object path,
-     * be sure to use the proper notation in places where the access point is a map item, not a object
-     * property. For example, say "MyFamily" is a map object, then the string is
-     * '$.MyFamily["Brother"].HairColor'. Use double quotes for these map keys.
-     * @property {Array|String} [ignoreKeys] - A string or array of strings containing map keys
-     * that will not be stringified. All map objects will have their keys compared to the values in
-     * `ignoreKeys`. If a key matches, it is skipped. This is only in effect when iterating the
-     * values of a map object.
-     * @property {String} [indent] - The literal string to use as indentation.
-     * @property {String} [itemContainerArray] - The name given to the faux array container.
-     * @property {String} [itemContainerMap] - The name given to the faux map container.
-     * @property {Number} [maxDepth] - The maximum depth that will be recursed into and stringified.
-     * `0` means no limit.
-     * @property {String} [newline] - The literal string used for new lines.
-     * @property {Integer} [nlDepthLimit] - The maximum depth at which newlines will be printed in
-     * the JSON string. When this option is 0, it is not in effect.
-     * @property {Integer} [nlCharLimitAll] - When an object's stringification is complete, if the
-     * length of the object's string representation is under this number (character count), it is
-     * condensed to one line. This value supersedes the other three values. When this is 0, it is
-     * not in effect.
-     * @property {Integer} [nlCharLimitArray] - When an object's stringification is complete, if the length
-     * of the object's string representation is under this number, it is condensed to one line.
-     * @property {Integer} [nlCharLimitMap] - When an object's stringification is complete, if the length
-     * of the object's string representation is under this number, it is condensed to one line.
-     * @property {Integer} [nlCharLimitObj] - When an object's stringification is complete, if the length
-     * of the object's string representation is under this number, it is condensed to one line.
-     * @property {Boolean} [printFuncPlaceholders] - When true, functions are represented in the JSON string
-     * as "{Func}", "{BoundFunc}", or "{Closure}". This option works separately from `printPlaceholders`.
-     * @property {Boolean} [printPlaceholders] - When true, if a property of item is not stringified, a
-     * placeholder is printed in its stead, generally in the form `"{Type(obj)}"`. The exception is when
-     * the type is `Class`. Since this is ambiguous, the placeholder is `"{Class: obj.prototype.__Class}"`.
-     * This option works separately fron `printFuncPlaceholders`; `printPlaceholders` has no impact
-     * on function objects.
-     * @property {Boolean} [quoteNumericKeys] - When true, map keys that are numbers are always quoted.
-     * When false, numbers that are map keys are printed as numbers without quotes.
-     * @property {Integer|String} [recursePrevention] - Valid values are: 0 or false - no protection
-     * 1 - `Stringify` allows multiple stringifications, but will not recurse into any objects that
-     * would cause infinite recursion due to having a property that is also a parent object.
-     * 2 - Enforces a maximum of one stringification per object.
-     * @property {Boolean} [singleLine] - When true, the entire JSON string is printed in a single line
-     * (no newlines or indentation). This option supersedes any other related option.
-     * @property {Boolean} [singleLineArray] - All arrays are condensed to a single line each.
-     * @property {Boolean} [singleLineMap] - All maps are condensed to a single line each.
-     * @property {Boolean} [singleLineObj] - All objects are condensed to a single line each.
-     * @property {Boolean} [enumPropsFirst] - This is only relevant when `callOwnProps` is true, and
-     * the object being stringified is a map or an array (or has nested objects that are a map or
-     * array). When true, `Stringify` will call `OwnProps()` first before calling `__Enum()` for all
-     * map and array objects. When false, `Stringify` will call `__Enum()` first before calling
-     * `OwnProps()`.
-     * @property {Boolean} [printTypeTag] - When true, `Stringify` prints information about the type
-     * of object in its segment of the JSON string. It is printed as a property called `__StringifyTypeTag`.
-     * `__StringifyTypeTag` serves these functions: - It speeds up parsing because arrays don't need to be
-     * validated as either map or array; - It enables the parser to restore the object to its original type.
-     * Without this tag, the parser cannot restore the JSON objects into their type. It is deleted from
-     * the objects upon exit, and will be in the JSON string only.
-     * @property {Boolean|Integer|String} [callOwnProps] - `callOwnProps` controls `Stringify`'s behavior
+     * @property {Boolean|Integer|String} [callOwnProps=2] - `callOwnProps` controls `Stringify`'s behavior
      * when using the built-in `Object.Prototype.OwnProps()` method. These options are available:
      * - 0: No objects will call `OwnProps()`.
      * - 1: All objects will call `OwnProps()` in its 1-parameter mode. {@link https://www.autohotkey.com/docs/v2/lib/Object.htm#OwnProps}
@@ -174,9 +102,93 @@ class Stringify {
      * RegExMatch(params.callOwnProps, 'i)(^|(?<=\s))(?<type>' obj is Class
      * ? obj.Prototype.__Class : obj.Base.__Class) ')(?::(?<mode>\d+))?((?=\s)|$)', &match)
      * @
-     * @property {Boolean} [returnString] - When true, `Stringify` will return the string in addition
+     * @property {String} [escapeNL=''] - The literal string of characters to replace matches with `\R`.
+     * When unset, '`r' is replaced with '\r' , and '`n' with '\n'.
+     * @property {Boolean|String} [printErrors=false] - When true, if an error occurs when attempting to
+     * access a property or value, the error text is printed next to the placeholder. You can also assign
+     * this a string value, where the string indicates which error property to include in the printed
+     * text. Use only the first letter of the property name. The available properties are: `Message`,
+     * `What`, `Extra`, `File`, `Line`, and `Stack`. An additional option is `T`, which will print
+     * the type of error as `Type(err)`. A separator character is optional. For example, writing
+     * `ML` will direct `Stringify` to only print the `Message` and `Line` property. Information is
+     * printed in the order it is listed in the option's value.
+     * @property {Array|String} [ignoreProps=[]] - A string or array of strings containing property
+     * names / object paths that will not be stringified. This is only in effect when iterating an
+     * objects' `OwnProps()` method. To unambiguously exclude a property from a specific object,
+     * write the string using the full path beginning with "$.". For example, if I have a nested object
+     * on a property called "HairColor", and I want to exclude that one specifically for my "Brother"
+     * but not my "Sister", I would write "$.MyFamily.Brother.HairColor". If I want to exclude all
+     * properties named "HairColor", I just write "HairColor". The "$." represents the root object,
+     * and so in this example, "MyFamily" is a property of the root object, not the root object itself.
+     * Note that map keys are represented using map/array notation, so when writing the object path,
+     * be sure to use the proper notation in places where the access point is a map item, not a object
+     * property. For example, say "MyFamily" is a map object, then the string is
+     * '$.MyFamily["Brother"].HairColor'. Use double quotes for these map keys.
+     * @property {Array|String} [ignoreKeys=[]] - A string or array of strings containing map keys
+     * that will not be stringified. All map objects will have their keys compared to the values in
+     * `ignoreKeys`. If a key matches, it is skipped. This is only in effect when iterating the
+     * values of a map object.
+     * @property {Boolean} [IncludeMethods=false] - If true, methods are included in the output, and
+     * `OwnProps` is used in its 1-parameter mode regardless of the value of `callOwnprops`.
+     * If false, methods are not included in the output.
+     * @property {Map} [propsList=''] - A map object containing key:value pairs, where the key is
+     * a class name and the value is an array of strings specifying what property to include for
+     * that class. I implemented this as a way to compensate for the fact that, as of this writing,
+     * the release version of AHK does not have a `Props` to access all object properties including
+     * inherited properties. The idea was to be able to assign the output from my function `GetProps`
+     * to this property and use it that way. It's been a while since I worked on this and I don't
+     * really remember how well I implemented it, so give it a try but it might cause an error.
+     * @property {String} [indent='`s`s`s`s'] - The literal string to use as indentation.
+     * @property {String} [itemContainerArray='__ArrayItem'] - The name given to the faux array container.
+     * @property {String} [itemContainerMap='__MapItem'] - The name given to the faux map container.
+     * @property {Number} [maxDepth=0] - The maximum depth that will be recursed into and stringified.
+     * `0` means no limit.
+     * @property {String} [newline='`r`n'] - The literal string used for new lines.
+     * @property {Integer} [nlDepthLimit=0] - The maximum depth at which newlines will be printed in
+     * the JSON string. When this option is 0, it is not in effect.
+     * @property {Integer} [nlCharLimitAll=0] - When an object's stringification is complete, if the
+     * length of the object's string representation is under this number (character count), it is
+     * condensed to one line. This value supersedes the other three values. When this is 0, it is
+     * not in effect.
+     * @property {Integer} [nlCharLimitArray=0] - When an object's stringification is complete, if the length
+     * of the object's string representation is under this number, it is condensed to one line.
+     * @property {Integer} [nlCharLimitMap=0] - When an object's stringification is complete, if the length
+     * of the object's string representation is under this number, it is condensed to one line.
+     * @property {Integer} [nlCharLimitObj=0] - When an object's stringification is complete, if the length
+     * of the object's string representation is under this number, it is condensed to one line.
+     * @property {Boolean} [printFuncPlaceholders=false] - When true, functions are represented in the JSON string
+     * as "{Func}", "{BoundFunc}", or "{Closure}". This option works separately from `printPlaceholders`.
+     * @property {Boolean} [printPlaceholders=false] - When true, if a property of item is not stringified, a
+     * placeholder is printed in its stead, generally in the form `"{Type(obj)}"`. The exception is when
+     * the type is `Class`. Since this is ambiguous, the placeholder is `"{Class: obj.prototype.__Class}"`.
+     * This option works separately fron `printFuncPlaceholders`; `printPlaceholders` has no impact
+     * on function objects.
+     * @property {Boolean} [quoteNumericKeys=false] - When true, map keys that are numbers are always quoted.
+     * When false, numbers that are map keys are printed as numbers without quotes.
+     * @property {Integer|String} [recursePrevention=1] - Valid values are: 0 or false - no protection
+     * 1 - `Stringify` allows multiple stringifications, but will not recurse into any objects that
+     * would cause infinite recursion due to having a property that is also a parent object.
+     * 2 - Enforces a maximum of one stringification per object.
+     * @property {Boolean} [singleLine=false] - When true, the entire JSON string is printed in a single line
+     * (no newlines or indentation). This option supersedes any other related option.
+     * @property {Boolean} [singleLineArray=false] - All arrays are condensed to a single line each.
+     * @property {Boolean} [singleLineMap=false] - All maps are condensed to a single line each.
+     * @property {Boolean} [singleLineObj=false] - All objects are condensed to a single line each.
+     * @property {Boolean} [printTypeTag=false] - When true, `Stringify` prints information about the type
+     * of object in its segment of the JSON string. It is printed as a property called `__StringifyTypeTag`.
+     * `__StringifyTypeTag` serves these functions: - It speeds up parsing because arrays don't need to be
+     * validated as either map or array; - It enables the parser to restore the object to its original type.
+     * Without this tag, the parser cannot restore the JSON objects into their type. It is deleted from
+     * the objects upon exit, and will be in the JSON string only.
+     * @property {Boolean} [returnString=true] - When true, `Stringify` will return the string in addition
      * to assigning it to the VarRef. When false, the string is only assigned to the VarRef.
-     *
+     * @property {Boolean} [deleteTags=true] - Whether or not to spend the time deleting the
+     * temporary properties `Stringify` assigns. If a script is exiting, or the object is going to
+     * be discarded, you might set this to false to save some milliseconds because it won't matter
+     * anyway.
+     * @property {Boolean} [throwErrors=true] - Whether or not to throw errors when `Stringify`
+     * encounters them. When true, the errors are thrown. When false, if `printErrors` is true,
+     * the errors are printed in the output; if `printErrors` is false, the errors are ignored.
      */
     static Call(obj, &str?, options?) {
         static controller, HandleObjects, HandleBuiltins, HandleError, builtinsList, CallMapEnum
