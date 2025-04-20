@@ -52,8 +52,8 @@ class Stringify {
 
         __New(obj, params) {
             for key, val in Stringify.Params.OwnProps() {
-                this.%key% := params.HasOwnProp(key) ? params.%key% : IsSet(StringifyConfig)
-                && StringifyConfig.HasOwnProp(key) ? StringifyConfig.%key% : val
+                this.%key% := OBJ_HASOWNPROP(params, key) ? params.%key% : IsSet(StringifyConfig)
+                && OBJ_HASOWNPROP(StringifyConfig, key) ? StringifyConfig.%key% : val
             }
         }
         ; __New(obj, params) {
@@ -194,6 +194,7 @@ class Stringify {
         static controller, HandleObjects, HandleBuiltins, HandleError, builtinsList, CallMapEnum
         , CallOwnProps, stringifyTypeTag := '__StringifyTypeTag', params, InitialPropCheck
         , stringifyTag := '__StringifyTag', stringifyAll
+
         local props, prop, key, typeStr, ownPropsStr, discardGroup, keys
         , enum := flagEnum := flagAsMap := flag := flagSingleLine := false, flagComplete := false
 
@@ -221,8 +222,8 @@ class Stringify {
                 HandleObjects.Push(_RecursePrevention2.Bind(duplicateReturnValue))
             HandleObjects.Push(_IsIterableObject)
             HandleObjects.Push(_HandleNonIterableValue.Bind(returnValue, Stringify.patternNonIterables))
-            _RecursePrevention1(duplicateReturnValue, val) => val.HasOwnProp(stringifyTag) && InStr(controller.active.path, val.%stringifyTag%) ? duplicateReturnValue : 0
-            _RecursePrevention2(duplicateReturnValue, val) => val.HasOwnProp(stringifyTag) ? duplicateReturnValue : 0
+            _RecursePrevention1(duplicateReturnValue, val) => OBJ_HASOWNPROP(val, stringifyTag) && InStr(controller.active.path, val.%stringifyTag%) ? duplicateReturnValue : 0
+            _RecursePrevention2(duplicateReturnValue, val) => OBJ_HASOWNPROP(val, stringifyTag) ? duplicateReturnValue : 0
             ; I put `maxDepth` after `recursePrevention` to provide the opportunity to print a duplicate placeholder
             ; if appropriate, instead of a standard placeholder, if the two conditions ever occur in the same object.
             _HandleMaxDepth(returnValue, *) => controller.depth == params.maxDepth ? returnValue : 0
@@ -230,7 +231,10 @@ class Stringify {
                 if val is ComObject || val is ComValue
                     return 2
             }
-            _IsIterableObject(val) => RegExMatch(Type(Val), '\b(?:Map|Array|Gui|RegExMatchInfo|Error)\b') ? 4 : 0 ; returning 4 is only valid if this comes after `maxDepth` and `recursePrevention`
+            _IsIterableObject(val) {
+                t := Type(Val)
+                return RegExMatch(t, '\b(?:Map|Array|Gui|RegExMatchInfo|Error)\b') ? 4 : 0 ; returning 4 is only valid if this comes after `maxDepth` and `recursePrevention`
+            }
             _HandleNonIterableValue(returnValue, pattern, val) {
                 if RegExMatch(Type(val), pattern) || (!params.propsList
                 || !params.propsList.Has(Type(val))) && !ObjOwnPropCount(val)
@@ -348,7 +352,7 @@ class Stringify {
             }
             _CallOwnProps1(listIgnoreProps, propsList, obj) {
                 local flagIgnore := false, flagEmpty := true, SetValue := _SetValueProps1
-                for prop in obj.OwnProps()
+                for prop in OBJ_OWNPROPS(obj)
                     _Process(&prop)
                 if propsList {
                     for prop in propsList
@@ -403,7 +407,7 @@ class Stringify {
             }
             _CallOwnProps2(listIgnoreProps, obj) {
                 local flagIgnore := false, flagEmpty := true, SetValue := _SetValueProps1
-                for prop, val in obj.OwnProps() {
+                for prop, val in OBJ_OWNPROPS(obj) {
                     if prop == stringifyTag
                         continue
                     for ignoreProp in listIgnoreProps {
@@ -584,21 +588,22 @@ class Stringify {
 
 
         ;@region Core
-        if Obj is Array {
-            if params.callOwnProps && ObjOwnPropCount(obj) > 1
-                CallOwnProps(obj)
-            CallArrayEnum(obj)
-        } else if Obj is Map or Obj is RegExMatchInfo {
-            if params.callOwnProps && ObjOwnPropCount(obj) > 1
-                CallOwnProps(obj)
-            CallMapEnum(obj)
-        } else {
-            if params.callOwnProps {
-                if params.propsList && params.propsList.Has(Type(obj))
-                    _CallOwnProps1(params.ignoreProps, params.propsList[Type(obj)], obj)
-                else
+        switch controller.active.typecode {
+            case 'A':
+                if params.callOwnProps && ObjOwnPropCount(obj) > 1
                     CallOwnProps(obj)
-            }
+                CallArrayEnum(obj)
+            case 'M':
+                if params.callOwnProps && ObjOwnPropCount(obj) > 1
+                    CallOwnProps(obj)
+                CallMapEnum(obj)
+            case 'O':
+                if params.callOwnProps {
+                    if params.propsList && params.propsList.Has(Type(obj))
+                        _CallOwnProps1(params.ignoreProps, params.propsList[Type(obj)], obj)
+                    else
+                        CallOwnProps(obj)
+                }
         }
 
         if controller.active.flagOwnProps
@@ -719,20 +724,21 @@ class Stringify {
             t := Type(obj), name := StrReplace(StrReplace(name, '`r', '``r'), '`n', '``n')
             this.activeList.Push(previous := this.active), this.active := {type: t, name: name,
             path: previous.fullname, flagOwnProps: false}
-            switch t {
-                case 'Array':
-                    this.active.typecode := 'A'
-                case 'Map':
-                    this.active.typecode := 'M'
-                default:
-                    this.active.typecode := 'O'
+            if Type(Obj) == 'Prototype' {
+                this.active.typecode := 'O'
+            } else if obj is Array {
+                this.active.typecode := 'A'
+            } else if obj is Map || obj is RegExMatchInfo {
+                this.active.typecode := 'M'
+            } else {
+                this.active.typecode := 'O'
             }
-            switch previous.type {
-                case 'Array':
+            switch previous.typecode {
+                case 'A':
                     this.active.fullname := previous.fullname '[' name ']'
-                case 'Map':
+                case 'M':
                     this.active.fullname := previous.fullname '["' name '"]'
-                default:
+                case 'O':
                     this.active.fullname := previous.fullname '.' name
             }
             this.depth++
@@ -751,8 +757,8 @@ class Stringify {
             if IsSet(flagStringificationComplete) {
                 if this.params.deleteTags {
                     for key, obj in this.tags
-                        obj.DeleteProp(this.stringifyTag)
-                    this.root.DeleteProp(this.stringifyTag)
+                        OBJ_DELETEPROP(obj, this.stringifyTag)
+                    OBJ_DELETEPROP(this.root, this.stringifyTag)
                 }
                 return 1
             }
@@ -835,7 +841,7 @@ class Stringify {
             i++
             for obj in objects {
                 obj.DefineProp(propName, {Value: ''})
-                for prop in obj.OwnProps() {
+                for prop in OBJ_OWNPROPS(obj) {
                     if RegExMatch(Type(obj.%prop%), 'Func|BoundFunc|Closure|Enumerator')
                         obj.%propName% .= prop ' '
                     else if IsObject(obj.%prop%) && depth && i < depth
@@ -877,7 +883,7 @@ class Stringify {
         try
             val := obj.%prop%, result := 0
         catch {
-            val := obj.GetOwnPropDesc(prop)
+            val := OBJ_GETOWNPROPDESC(obj, Prop)
             if val.HasOwnProp('value')
                 val := val.value, result := 0
             else {
@@ -910,7 +916,7 @@ class Stringify {
         Loop {
             if b is Any || A_Index >= depth + 1
                 break
-            for prop in b.OwnProps() {
+            for prop in OBJ_OWNPROPS(b) {
                 if !b.HasMethod(prop) && prop != '__Class'
                     props.Push(prop)
             }
@@ -927,6 +933,21 @@ class Stringify {
         for ctrl in guiObj {
             container.Set(ctrl.Name||ctrl.hwnd, ctrl), ctrl.GetPos(&x, &y, &w, &h)
             ctrl.pos := 'x:' x ' y:' y ' w:' w ' h:' h
+        }
+    }
+    static __New() {
+        global OBJ_OWNPROPS, OBJ_GETOWNPROPDESC, OBJ_HASOWNPROP, OBJ_DELETEPROP
+        if !IsSet(OBJ_OWNPROPS) {
+            OBJ_OWNPROPS := Object.Prototype.OwnProps
+        }
+        if !IsSet(OBJ_GETOWNPROPDESC) {
+            OBJ_GETOWNPROPDESC := Object.Prototype.GetOwnPropDesc
+        }
+        if !IsSet(OBJ_HASOWNPROP) {
+            OBJ_HASOWNPROP := Object.Prototype.HasOwnProp
+        }
+        if !IsSet(OBJ_DELETEPROP) {
+            OBJ_DELETEPROP := Object.Prototype.DeleteProp
         }
     }
 }
