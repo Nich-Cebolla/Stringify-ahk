@@ -1,10 +1,18 @@
+/*
+    Github: https://github.com/Nich-Cebolla/Stringify-ahk/blob/main/ParseJson.ahk
+    Author: Nich-Cebolla
+    Version: 1.0.1
+    License: MIT
+*/
+; https://github.com/Nich-Cebolla/AutoHotkey-DecodeUnicodeEscapeSequence/blob/main/DecodeUnicodeEscapeSequence.ahk
+#include <DecodeUnicodeEscapeSequence>
 
 /**
  * @description - Parses a JSON string. If the JSON was created with the associated OBJECT_STRINGIFY
  * function, this may also be able to preserve the object's type. Limitations:
  * - Map objects' CaseSense value is not preserved; the default (true) is used. If this
  * is undesirable, this behavior can be avoided by using this code somewhere in your script prior to
- * calling OBJECT_PARSE (all Map objects will default to CaseSense = false):
+ * calling ParseJson (all Map objects will default to CaseSense = false):
  * @example
     Map.Prototype.DefineProp('__New', { Call: MAP_CONSTRUCTOR })
     MAP_CONSTRUCTOR(Self, Items*) {
@@ -32,7 +40,7 @@ ParseJson(Str?, Path?, Encoding?) {
         return _ProcessCurly(_GetObject(false))
     else
         return _ProcessSquare(_GetObject(true))
-    
+
     _GetObject(Square := false) {
         if !RegExMatch(Str, Square ? '\[([^\[\]]++|(?R))*\]' : '\{([^\{\}]++|(?R))*\}', &MatchObj)
             throw Error('The string does not contain a valid JSON object.', -1)
@@ -158,7 +166,7 @@ ParseJson(Str?, Path?, Encoding?) {
                     }
                 }
             }
-                
+
             ; The key and value should cover the entire NestedText string.
             _CheckLength(Pos) {
                 if Pos !== StrLen(NestedText) + 1 {
@@ -170,7 +178,7 @@ ParseJson(Str?, Path?, Encoding?) {
             _OnFalseM(*) => false
             _OnNullM(*) => ''
             _OnNumberM(MatchNum) => _HandleNumber(MatchNum)
-            _OnQuoteM(MatchQuote) => MatchQuote['value']
+            _OnQuoteM(MatchQuote) => StrReplace(StrReplace(StrReplace(StrReplace(MatchQuote['value'], '\\', '\'), '\r', '`r'), '\n', '`n'), '\"', '"')
             _OnTrueM(*) => true
         }
 
@@ -204,7 +212,7 @@ ParseJson(Str?, Path?, Encoding?) {
             }
             OnQuoteA(MatchArrayItem, *) {
                 Pos := MatchArrayItem.Pos + MatchArrayItem.Len
-                ActiveObj.Push(MatchArrayItem['value'])
+                ActiveObj.Push(StrReplace(StrReplace(StrReplace(StrReplace(MatchArrayItem['value'], '\\', '\'), '\r', '`r'), '\n', '`n'), '\"', '"'))
             }
             OnTrueA(MatchArrayItem, *) {
                 Pos := MatchArrayItem.Pos + MatchArrayItem.Len
@@ -297,13 +305,13 @@ ParseJson(Str?, Path?, Encoding?) {
                 if MatchName['name'] == '__Type'
                     ActiveObj := Controller[-1].Active := _HandleType(MatchQuote)
                 else
-                    ActiveObj.%MatchName['name']% := MatchQuote['value']
+                    ActiveObj.%MatchName['name']% := StrReplace(StrReplace(StrReplace(StrReplace(MatchQuote['value'], '\\', '\'), '\r', '`r'), '\n', '`n'), '\"', '"')
                 return MatchQuote.Pos + MatchQuote.Len
             }
 
             _HandleStringNoType(MatchName, &ActiveObj) {
                 MatchQuote := _GetQuotedString(MatchName, &InnerText)
-                ActiveObj.%MatchName['name']% := MatchQuote['value']
+                ActiveObj.%MatchName['name']% := StrReplace(StrReplace(StrReplace(StrReplace(MatchQuote['value'], '\\', '\'), '\r', '`r'), '\n', '`n'), '\"', '"')
                 return MatchQuote.Pos + MatchQuote.Len
             }
 
@@ -403,7 +411,7 @@ ParseJson(Str?, Path?, Encoding?) {
             Value := _HandleNumber(MatchNum)
             return MatchNum.Pos + MatchNum.Len
         } else {
-            switch SubStr(InnerText, MatchName.Pos + MatchName.Len, 4) {
+            switch SubStr(InnerText, MatchName.Pos + MatchName.Len - 1, 4) {
                 case 'true':
                     Value := true
                     return MatchName.Pos + MatchName.Len + 3
@@ -419,24 +427,4 @@ ParseJson(Str?, Path?, Encoding?) {
         '`r`nContext: ' MatchName[0] '`tPosition: ' MatchName.Pos, -1)
     }
     ;@endregion
-}
-
-
-DecodeUnicodeEscapeSequence(Str) {
-    while RegExMatch(Str, '\\u([dD][89aAbB][0-9a-fA-F]{2})\\u([dD][c-fC-F][0-9a-fA-F]{2})|\\u([0-9a-fA-F]{4})', &Match) {
-        if Match[1] && Match[2]
-            Str := StrReplace(Str, Match[0], Chr(((Number('0x' Match[1]) - 0xD800) << 10) + (Number('0x' Match[2]) - 0xDC00) + 0x10000))
-        else if Match[3]
-            Str := StrReplace(Str, Match[0], Chr('0x' Match[3]))
-        else if Match[1]
-            _Throw('first', 'second', Match[0])
-        else
-            _Throw('second', 'first', Match[0])
-    }
-    return Str
-
-    _Throw(A, B, C) {
-        throw Error('The input matched with the ' A ' capture group but not ' B ', which is'
-        '`r`nunexpected and unhandled. Match: ' C, -2)
-    }
 }
