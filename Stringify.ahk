@@ -5,14 +5,14 @@
     License: MIT
 */
 
-; #Include <Inheritance_V1.0.0>
-; https://github.com/Nich-Cebolla/AutoHotkey-LibV2/blob/main/Inheritance.ahk
+; https://github.com/Nich-Cebolla/AutoHotkey-LibV2/tree/main/inheritance
+#include <Inheritance>
 
 class Stringify {
 
     class params {
         ; Enum options
-        static callOwnProps := 2
+        static callPropsInfo := true
         static includeMethods := false ; when this is true, 1-param mode OwnProps is always used
         static ignoreProps := []
         static ignoreKeys := []
@@ -681,15 +681,16 @@ class Stringify {
 
             t := Type(obj), this.root := obj
 
-            this.active := {type: Type(obj), class: t == 'Class' ? obj.Prototype.__Class
-            : obj.Base.__Class, path: '', name: '$', fullname: '$', flagOwnProps: false,}
-            switch t {
-                case 'Array':
-                    this.active.typecode := 'A'
-                case 'Map':
-                    this.active.typecode := 'M'
-                default:
-                    this.active.typecode := 'O'
+            this.active := {type: Type(obj), class: Obj is Class ? obj.Prototype.__Class
+            : obj.Base.__Class, path: '', name: '$', fullname: '$', flagOwnProps: false }
+            if Type(Obj) == 'Prototype' {
+                this.active.typecode := 'O'
+            } else if Obj is Array {
+                this.active.typecode := 'A'
+            } else if Obj is Map || Obj is RegExMatchInfo {
+                this.active.typecode := 'M'
+            } else {
+                this.active.typecode := 'O'
             }
 
             if params.singleLine {
